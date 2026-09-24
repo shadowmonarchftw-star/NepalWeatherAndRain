@@ -4,24 +4,27 @@ import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import BayOfBengalTracker from "@/components/BayOfBengalTracker";
-import MapControls, { MapLayerType, ForecastTimeWindow } from "@/components/MapControls";
+import MapControls, { MapLayerType, ForecastTimeWindow, BasemapType } from "@/components/MapControls";
 import FloodHazardIndex from "@/components/FloodHazardIndex";
 import DistrictSelector from "@/components/DistrictSelector";
 import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
+import LiveSatelliteModal from "@/components/LiveSatelliteModal";
 import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
 import { DistrictWeatherSummary, RainViewerData } from "@/lib/types";
 import { generateSynopticFallbackForDistrict, getBayOfBengalTelemetry } from "@/lib/openMeteo";
+import { DHMRiverStation } from "@/app/api/dhm/route";
 
 // Dynamically import Leaflet Map with SSR disabled
 const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[500px] rounded-2xl bg-[#060E1D] border-2 border-[#003893] flex flex-col items-center justify-center text-blue-200">
+    <div className="w-full h-[520px] rounded-2xl bg-[#060E1D] border-2 border-[#003893] flex flex-col items-center justify-center text-blue-200">
       <div className="w-10 h-10 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mb-3" />
       <span className="text-sm font-semibold tracking-wide">
-        Loading Nepal Meteorological Map & Radar...
+        Loading Free Nepal Meteorological Map & Radar...
       </span>
+      <span className="text-xs text-blue-400/80 mt-1">Watermark-free open GIS engine</span>
     </div>
   ),
 });
@@ -35,13 +38,16 @@ export default function Home() {
   );
 
   const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>(initialDistricts);
+  const [dhmRivers, setDhmRivers] = useState<DHMRiverStation[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isSatelliteViewerOpen, setIsSatelliteViewerOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Map Controls State
   const [activeLayer, setActiveLayer] = useState<MapLayerType>("precipitation");
   const [timeWindow, setTimeWindow] = useState<ForecastTimeWindow>("24h");
+  const [basemap, setBasemap] = useState<BasemapType>("dark");
   const [mapCenterFocus, setMapCenterFocus] = useState<[number, number] | null>(null);
 
   // RainViewer Radar State
@@ -49,7 +55,25 @@ export default function Home() {
   const [radarFrameIndex, setRadarFrameIndex] = useState(0);
   const [isPlayingRadar, setIsPlayingRadar] = useState(true);
 
-  // Fetch live RainViewer radar timestamps on load
+  // 1. Fetch live DHM Nepal river stations on load
+  useEffect(() => {
+    async function loadDHM() {
+      try {
+        const res = await fetch("/api/dhm");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.rivers?.length) {
+            setDhmRivers(data.rivers);
+          }
+        }
+      } catch (err) {
+        console.warn("Using cached DHM station telemetry", err);
+      }
+    }
+    loadDHM();
+  }, []);
+
+  // 2. Fetch live RainViewer radar timestamps on load
   useEffect(() => {
     async function loadRadar() {
       try {
@@ -68,7 +92,7 @@ export default function Home() {
     loadRadar();
   }, []);
 
-  // Radar playback loop
+  // 3. Radar playback loop
   useEffect(() => {
     if (!isPlayingRadar || activeLayer !== "radar" || !radarData?.radarPast?.length) return;
 
@@ -79,11 +103,20 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingRadar, activeLayer, radarData]);
 
-  // Fetch live weather data for key cities in background
+  // Refresh weather and DHM data on demand
   const refreshWeatherData = async () => {
     setIsRefreshing(true);
     try {
-      // Refresh sample key cities directly from Open-Meteo
+      // 1. Refresh DHM Rivers
+      try {
+        const dhmRes = await fetch("/api/dhm");
+        if (dhmRes.ok) {
+          const dhmData = await dhmRes.json();
+          if (dhmData.rivers?.length) setDhmRivers(dhmData.rivers);
+        }
+      } catch {}
+
+      // 2. Refresh key cities from Open-Meteo
       const keyCityIds = ["kathmandu", "morang", "kaski", "chitwan", "jhapa", "dhanusha"];
       const updatedList = [...districtsData];
 
@@ -97,9 +130,7 @@ export default function Home() {
               updatedList[idx] = data;
             }
           }
-        } catch {
-          // ignore individual fetch errors
-        }
+        } catch {}
       }
       setDistrictsData(updatedList);
     } catch (err) {
@@ -122,7 +153,6 @@ export default function Home() {
 
   // Current radar frame path
   const currentRadarPath = radarData?.radarPast?.[radarFrameIndex]?.path;
-  const currentSatellitePath = radarData?.satellite?.[0]?.path;
   const currentRadarTime = radarData?.radarPast?.[radarFrameIndex]
     ? new Date(radarData.radarPast[radarFrameIndex].time * 1000).toLocaleTimeString("en-US", {
         hour: "2-digit",
@@ -157,31 +187,37 @@ export default function Home() {
             onChangeLayer={setActiveLayer}
             timeWindow={timeWindow}
             onChangeTimeWindow={setTimeWindow}
+            basemap={basemap}
+            onChangeBasemap={setBasemap}
             isPlayingRadar={isPlayingRadar}
             onToggleRadarPlay={() => setIsPlayingRadar(!isPlayingRadar)}
             radarFrameIndex={radarFrameIndex}
             totalRadarFrames={radarData?.radarPast?.length || 0}
             onChangeRadarFrame={setRadarFrameIndex}
             currentRadarTime={currentRadarTime}
+            onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
           />
 
           <NepalWeatherMap
             districtsData={districtsData}
+            dhmRivers={dhmRivers}
             telemetry={telemetry}
             activeLayer={activeLayer}
             timeWindow={timeWindow}
+            basemap={basemap}
             radarHost={radarData?.host}
             radarPath={currentRadarPath}
-            satellitePath={currentSatellitePath}
             selectedDistrictId={selectedDistrictId || undefined}
             onSelectDistrict={(id) => setSelectedDistrictId(id)}
             mapCenterFocus={mapCenterFocus}
+            onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
           />
         </section>
 
-        {/* 4. River Basin Flood Hazard Index & Highway Travel Advisories */}
+        {/* 4. River Basin Flood Hazard Index & Live DHM Gauges */}
         <section>
           <FloodHazardIndex
+            dhmRivers={dhmRivers}
             onSelectBasinFocus={(basinId) => {
               if (basinId.includes("koshi")) setMapCenterFocus([27.0, 87.2]);
               else if (basinId.includes("bagmati")) setMapCenterFocus([27.7, 85.3]);
@@ -218,11 +254,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
-            <span>Data: Open-Meteo & RainViewer (100% Free)</span>
+            <span>DHM Nepal Live River Gauges</span>
             <span>•</span>
-            <span>Thresholds: DHM Nepal Standards</span>
+            <span>ISRO / IMD INSAT-3D Satellite</span>
             <span>•</span>
-            <span className="text-emerald-400 font-semibold">Vercel Ready</span>
+            <span>Open-Meteo ECMWF / GFS</span>
+            <span>•</span>
+            <span className="text-emerald-400 font-semibold">100% Free & Open Data</span>
           </div>
         </div>
       </footer>
@@ -237,6 +275,12 @@ export default function Home() {
       <EmergencyModal
         isOpen={isEmergencyOpen}
         onClose={() => setIsEmergencyOpen(false)}
+      />
+
+      {/* 9. Live INSAT-3D Satellite Viewer Modal */}
+      <LiveSatelliteModal
+        isOpen={isSatelliteViewerOpen}
+        onClose={() => setIsSatelliteViewerOpen(false)}
       />
     </div>
   );

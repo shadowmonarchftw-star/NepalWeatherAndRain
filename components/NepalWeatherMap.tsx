@@ -4,69 +4,108 @@ import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { DistrictWeatherSummary, BayOfBengalTelemetry } from "@/lib/types";
-import { MapLayerType, ForecastTimeWindow } from "./MapControls";
+import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
+import { DHMRiverStation } from "@/app/api/dhm/route";
 
 interface NepalWeatherMapProps {
   districtsData: DistrictWeatherSummary[];
+  dhmRivers?: DHMRiverStation[];
   telemetry: BayOfBengalTelemetry;
   activeLayer: MapLayerType;
   timeWindow: ForecastTimeWindow;
+  basemap: BasemapType;
   radarHost?: string;
   radarPath?: string;
-  satellitePath?: string;
   selectedDistrictId?: string;
   onSelectDistrict: (districtId: string) => void;
   mapCenterFocus?: [number, number] | null;
+  onOpenSatelliteViewer?: () => void;
 }
+
+// DHM Doppler Weather Radar Stations in Nepal
+const DHM_DOPPLER_RADARS = [
+  {
+    name: "Ratananagar Doppler Radar (Surkhet)",
+    location: "Karnali Province",
+    lat: 28.5833,
+    lon: 81.6667,
+    radiusM: 200000, // 200 km scan radius
+    description: "Monitors Western Nepal, Karnali basin & Bheri river systems.",
+  },
+  {
+    name: "Ribdikot Doppler Radar (Palpa)",
+    location: "Lumbini Province",
+    lat: 27.8667,
+    lon: 83.5167,
+    radiusM: 200000, // 200 km scan radius
+    description: "Monitors Central Nepal, Gandaki basin, Pokhara valley & Narayani river.",
+  },
+  {
+    name: "Rauta Doppler Radar (Udayapur)",
+    location: "Koshi Province",
+    lat: 26.9667,
+    lon: 86.5833,
+    radiusM: 200000, // 200 km scan radius
+    description: "Primary eastern early-warning radar facing moisture ingress from the Bay of Bengal.",
+  },
+];
 
 export default function NepalWeatherMap({
   districtsData,
+  dhmRivers = [],
   telemetry,
   activeLayer,
   timeWindow,
+  basemap,
   radarHost = "https://tilecache.rainviewer.com",
   radarPath,
-  satellitePath,
   selectedDistrictId,
   onSelectDistrict,
   mapCenterFocus,
+  onOpenSatelliteViewer,
 }: NepalWeatherMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const baseTileLayerRef = useRef<L.TileLayer | null>(null);
   const radarLayerRef = useRef<L.TileLayer | null>(null);
-  const satelliteLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const riversLayerRef = useRef<L.LayerGroup | null>(null);
   const stormLayerRef = useRef<L.LayerGroup | null>(null);
+  const dhmRadarLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    // Nepal geographical center: ~28.2°N, 84.4°E
+    // Nepal geographical center: ~27.7°N, 85.5°E
     const map = L.map(mapContainerRef.current, {
       center: [27.7, 85.5],
       zoom: 7,
       minZoom: 5,
-      maxZoom: 12,
+      maxZoom: 13,
       zoomControl: false,
     });
 
     // Custom Top-Right Zoom Control
     L.control.zoom({ position: "topright" }).addTo(map);
 
-    // Dark Matter basemap (CartoDB) - high performance & free
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: "abcd",
-      maxZoom: 19,
-    }).addTo(map);
+    // Initial free basemap: ESRI World Dark Gray Base (NO API KEY REQUIRED)
+    const baseLayer = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution:
+          '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
+        maxZoom: 16,
+      }
+    ).addTo(map);
+
+    baseTileLayerRef.current = baseLayer;
 
     // Create Layer Groups
     markersLayerRef.current = L.layerGroup().addTo(map);
     riversLayerRef.current = L.layerGroup().addTo(map);
     stormLayerRef.current = L.layerGroup().addTo(map);
+    dhmRadarLayerRef.current = L.layerGroup().addTo(map);
 
     mapRef.current = map;
 
@@ -75,6 +114,34 @@ export default function NepalWeatherMap({
       mapRef.current = null;
     };
   }, []);
+
+  // Handle Basemap Switch (Dark Canvas, Satellite Imagery, OpenStreetMap)
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (baseTileLayerRef.current) {
+      mapRef.current.removeLayer(baseTileLayerRef.current);
+      baseTileLayerRef.current = null;
+    }
+
+    let url = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+    let attribution = '&copy; <a href="https://www.esri.com/">Esri</a>, DeLorme, NAVTEQ';
+
+    if (basemap === "satellite" || activeLayer === "satellite") {
+      url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+      attribution = '&copy; <a href="https://www.esri.com/">Esri</a>, Earthstar Geographics, USDA, USGS';
+    } else if (basemap === "osm") {
+      url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+      attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    }
+
+    const newBase = L.tileLayer(url, {
+      attribution,
+      maxZoom: 18,
+    });
+    newBase.addTo(mapRef.current);
+    baseTileLayerRef.current = newBase;
+  }, [basemap, activeLayer]);
 
   // Handle programmatic focus (e.g. clicking "Focus on Eastern Nepal")
   useEffect(() => {
@@ -95,7 +162,7 @@ export default function NepalWeatherMap({
     if (activeLayer === "radar" && radarPath) {
       const radarUrl = `${radarHost}${radarPath}/256/{z}/{x}/{y}/2/1_1.png`;
       const radarLayer = L.tileLayer(radarUrl, {
-        opacity: 0.75,
+        opacity: 0.8,
         zIndex: 50,
       });
       radarLayer.addTo(mapRef.current);
@@ -103,30 +170,63 @@ export default function NepalWeatherMap({
     }
   }, [activeLayer, radarPath, radarHost]);
 
-  // Handle Satellite Cloud Layer changes
+  // Render DHM Doppler Weather Radars (Scan ranges)
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!dhmRadarLayerRef.current) return;
+    const radarGroup = dhmRadarLayerRef.current;
+    radarGroup.clearLayers();
 
-    if (satelliteLayerRef.current) {
-      mapRef.current.removeLayer(satelliteLayerRef.current);
-      satelliteLayerRef.current = null;
-    }
+    if (activeLayer === "radar") {
+      DHM_DOPPLER_RADARS.forEach((radar) => {
+        // Scan radius circle (200km)
+        const circle = L.circle([radar.lat, radar.lon], {
+          radius: radar.radiusM,
+          color: "#00E5FF",
+          fillColor: "#00E5FF",
+          fillOpacity: 0.06,
+          weight: 1.5,
+          dashArray: "5, 8",
+        });
 
-    if (activeLayer === "satellite" && satellitePath) {
-      const satUrl = `${radarHost}${satellitePath}/256/{z}/{x}/{y}/0/0_0.png`;
-      const satLayer = L.tileLayer(satUrl, {
-        opacity: 0.65,
-        zIndex: 45,
+        // Station Center Marker
+        const stationIcon = L.divIcon({
+          className: "custom-radar-icon",
+          html: `
+            <div class="relative flex items-center justify-center w-8 h-8 -ml-4 -mt-4">
+              <div class="absolute inset-0 rounded-full bg-[#00E5FF] opacity-50 animate-ping"></div>
+              <div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-[#003893] border-2 border-[#00E5FF] text-white shadow-lg text-xs font-bold">
+                📡
+              </div>
+            </div>
+          `,
+        });
+
+        const marker = L.marker([radar.lat, radar.lon], { icon: stationIcon });
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; color: #fff;">
+            <div style="font-weight: 800; color: #00E5FF; margin-bottom: 4px;">
+              ${radar.name}
+            </div>
+            <div style="color: #93c5fd; margin-bottom: 4px;">${radar.location}</div>
+            <div style="font-size: 11px; margin-bottom: 4px;"><strong>Radar Range:</strong> 200 km</div>
+            <div style="font-size: 11px; color: #e2e8f0; line-height: 1.4;">${radar.description}</div>
+            <div style="margin-top: 6px; padding: 3px 6px; background: #003893; border-radius: 4px; font-size: 10px; font-weight: bold; text-align: center;">
+              DHM Official Doppler Radar Station
+            </div>
+          </div>
+        `);
+
+        radarGroup.addLayer(circle);
+        radarGroup.addLayer(marker);
       });
-      satLayer.addTo(mapRef.current);
-      satelliteLayerRef.current = satLayer;
     }
-  }, [activeLayer, satellitePath, radarHost]);
+  }, [activeLayer]);
 
   // Render Bay of Bengal storm center & moisture trajectory vector
   useEffect(() => {
     if (!stormLayerRef.current) return;
-    stormLayerRef.current.clearLayers();
+    const stormGroup = stormLayerRef.current;
+    stormGroup.clearLayers();
 
     // 1. Storm center icon in Bay of Bengal
     const stormIcon = L.divIcon({
@@ -159,7 +259,7 @@ export default function NepalWeatherMap({
       </div>
     `);
 
-    stormLayerRef.current.addLayer(stormMarker);
+    stormGroup.addLayer(stormMarker);
 
     // 2. Trajectory flow arrow from Bay of Bengal into Eastern Nepal (Biratnagar / Koshi)
     const trajectoryLine = L.polyline(
@@ -172,69 +272,117 @@ export default function NepalWeatherMap({
       ],
       {
         color: "#DC143C",
-        weight: 3,
+        weight: 3.5,
         dashArray: "6, 8",
-        opacity: 0.8,
+        opacity: 0.85,
       }
     );
-    stormLayerRef.current.addLayer(trajectoryLine);
+    stormGroup.addLayer(trajectoryLine);
   }, [telemetry]);
 
-  // Render Major River Basins (Koshi, Bagmati, Narayani, Karnali)
+  // Render Major River Basins & Live DHM River Station Gauges
   useEffect(() => {
     if (!riversLayerRef.current) return;
-    riversLayerRef.current.clearLayers();
+    const riversGroup = riversLayerRef.current;
+    riversGroup.clearLayers();
 
     if (activeLayer === "rivers") {
-      // Approximate river paths across Nepal
+      // 1. River network lines
       const koshiLine = L.polyline(
         [
-          [27.9, 86.8], // Everest/Dudhkoshi
-          [27.3, 87.1], // Arun junction
-          [26.88, 87.15], // Chatara
-          [26.5, 86.95], // Saptakoshi Barrage
+          [27.9, 86.8],
+          [27.3, 87.1],
+          [26.88, 87.15],
+          [26.5, 86.95],
         ],
-        { color: "#38BDF8", weight: 4, opacity: 0.85 }
+        { color: "#38BDF8", weight: 4.5, opacity: 0.85 }
       ).bindPopup("<strong>Koshi Basin</strong> (Saptakoshi / Chatara) - High Discharge Alert");
 
       const bagmatiLine = L.polyline(
         [
-          [27.8, 85.4], // Shivapuri / Bagdwar
-          [27.68, 85.31], // Kathmandu Valley
-          [27.4, 85.25], // Sisneri / Kulekhani
-          [27.0, 85.45], // Karmaiya Barrage
-          [26.7, 85.3], // Rautahat Plains
+          [27.8, 85.4],
+          [27.68, 85.31],
+          [27.4, 85.25],
+          [27.0, 85.45],
+          [26.7, 85.3],
         ],
-        { color: "#003893", weight: 4, opacity: 0.85 }
+        { color: "#003893", weight: 4.5, opacity: 0.85 }
       ).bindPopup("<strong>Bagmati River Basin</strong> - Flash flood risk in valley and Terai plains");
 
       const narayaniLine = L.polyline(
         [
-          [28.8, 83.8], // Kali Gandaki
-          [28.2, 84.4], // Marshyangdi
-          [27.9, 84.5], // Trishuli
-          [27.7, 84.42], // Devghat confluence
-          [27.5, 84.3], // Narayanghat / Chitwan
+          [28.8, 83.8],
+          [28.2, 84.4],
+          [27.9, 84.5],
+          [27.7, 84.42],
+          [27.5, 84.3],
         ],
-        { color: "#60A5FA", weight: 4, opacity: 0.85 }
+        { color: "#60A5FA", weight: 4.5, opacity: 0.85 }
       ).bindPopup("<strong>Narayani / Gandaki Basin</strong> - Major inflow from Annapurna/Trishuli");
 
       const karnaliLine = L.polyline(
         [
-          [29.8, 81.8], // Humla Karnali
-          [29.1, 81.6], // Kalikot
-          [28.65, 81.28], // Chisapani Gorge
-          [28.3, 81.1], // Bardiya Plains
+          [29.8, 81.8],
+          [29.1, 81.6],
+          [28.65, 81.28],
+          [28.3, 81.1],
         ],
-        { color: "#0284C7", weight: 4, opacity: 0.85 }
+        { color: "#0284C7", weight: 4.5, opacity: 0.85 }
       ).bindPopup("<strong>Karnali River Basin</strong> - Western flow");
 
-      riversLayerRef.current.addLayer(koshiLine);
-      riversLayerRef.current.addLayer(bagmatiLine);
-      riversLayerRef.current.addLayer(narayaniLine);
-      riversLayerRef.current.addLayer(karnaliLine);
+      riversGroup.addLayer(koshiLine);
+      riversGroup.addLayer(bagmatiLine);
+      riversGroup.addLayer(narayaniLine);
+      riversGroup.addLayer(karnaliLine);
+
+      // 2. Plot Real DHM River Station Gauges
+      dhmRivers.forEach((station) => {
+        const isDanger = station.status === "Danger";
+        const isWarning = station.status === "Warning";
+        const gaugeColor = isDanger ? "#DC143C" : isWarning ? "#F59E0B" : "#10B981";
+
+        const gaugeIcon = L.divIcon({
+          className: "custom-gauge-marker",
+          html: `
+            <div class="relative flex items-center justify-center w-8 h-8 -ml-4 -mt-4">
+              <div class="absolute inset-0 rounded-full" style="background-color: ${gaugeColor}; opacity: 0.6; ${
+            isDanger || isWarning ? "animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;" : ""
+          }"></div>
+              <div class="relative flex items-center justify-center w-6 h-6 rounded-full border-2 border-white shadow-xl text-white font-black text-[10px]" style="background-color: ${gaugeColor};">
+                🌊
+              </div>
+            </div>
+          `,
+        });
+
+        const marker = L.marker(station.coordinates, { icon: gaugeIcon });
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 13px; color: #fff; min-width: 180px;">
+            <div style="font-weight: 800; font-size: 13px; color: #fff; border-bottom: 1px solid #1E427B; padding-bottom: 3px; margin-bottom: 6px;">
+              ${station.name}
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+              <span style="color: #93c5fd;">Current Water Level (WL):</span>
+              <span style="font-weight: 800; color: ${gaugeColor};">${station.waterLevelM} m</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+              <span style="color: #93c5fd;">Warning Level (WR):</span>
+              <span style="color: #f59e0b; font-weight: 600;">${station.warningLevelM} m</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #93c5fd;">Danger Level (DL):</span>
+              <span style="color: #ef4444; font-weight: 600;">${station.dangerLevelM} m</span>
+            </div>
+            <div style="background: ${gaugeColor}22; border: 1px solid ${gaugeColor}; color: #fff; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center;">
+              DHM Status: ${station.status.toUpperCase()} (${station.percentOfWarning}% of Warning)
+            </div>
+          </div>
+        `);
+
+        riversGroup.addLayer(marker);
+      });
     }
-  }, [activeLayer]);
+  }, [activeLayer, dhmRivers]);
 
   // Render District Risk Markers (Color-coded circle markers for all 77 districts)
   useEffect(() => {
@@ -327,12 +475,12 @@ export default function NepalWeatherMap({
   }, [districtsData, timeWindow, selectedDistrictId, onSelectDistrict]);
 
   return (
-    <div className="relative w-full h-[450px] sm:h-[550px] lg:h-[620px] rounded-2xl overflow-hidden border-2 border-[#003893] shadow-2xl bg-[#060E1D]">
+    <div className="relative w-full h-[460px] sm:h-[560px] lg:h-[630px] rounded-2xl overflow-hidden border-2 border-[#003893] shadow-2xl bg-[#060E1D]">
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full z-10" />
 
       {/* Floating Map Legend (Nepal Flag Theme) */}
-      <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-[#071326]/90 border border-[#1A365D] backdrop-blur-md shadow-xl text-xs text-white max-w-[200px]">
+      <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-[#071326]/95 border border-[#1A365D] backdrop-blur-md shadow-xl text-xs text-white max-w-[210px]">
         <div className="font-bold text-[11px] uppercase tracking-wider text-blue-200 mb-2 border-b border-[#1A365D] pb-1 flex items-center justify-between">
           <span>Rainfall Risk ({timeWindow})</span>
           <span className="text-[10px] text-blue-400">DHM</span>
@@ -363,6 +511,16 @@ export default function NepalWeatherMap({
         <span className="font-bold text-[#FF4D6D]">Trajectory:</span>
         <span className="text-blue-200">Bay of Bengal &rarr; Koshi & Bagmati</span>
       </div>
+
+      {/* Floating Satellite Viewer Launcher Button (Top Right next to zoom) */}
+      {onOpenSatelliteViewer && (
+        <button
+          onClick={onOpenSatelliteViewer}
+          className="absolute top-4 right-14 z-20 hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#DC143C] hover:bg-[#B50F31] border border-white/30 text-xs font-bold text-white shadow-xl transition-all hover:scale-105 active:scale-95"
+        >
+          <span>🛰️ Live INSAT-3D Satellite</span>
+        </button>
+      )}
     </div>
   );
 }
