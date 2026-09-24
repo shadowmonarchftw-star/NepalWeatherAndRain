@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
-import { fetchDistrictWeather, generateSynopticFallbackForDistrict } from "@/lib/openMeteo";
+import { fetchDistrictWeather, fetchAll77DistrictsLive } from "@/lib/openMeteo";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Return all districts (using high-performance synoptic generator & sample queries)
-    const allDistricts = NEPAL_DISTRICTS.map((d) => generateSynopticFallbackForDistrict(d));
+    // Return all 77 districts with live Open-Meteo batch data
+    const allDistricts = await fetchAll77DistrictsLive();
     return NextResponse.json(allDistricts, {
       headers: {
         "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",

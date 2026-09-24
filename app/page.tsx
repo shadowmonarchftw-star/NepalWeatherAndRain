@@ -55,7 +55,29 @@ export default function Home() {
   const [radarFrameIndex, setRadarFrameIndex] = useState(0);
   const [isPlayingRadar, setIsPlayingRadar] = useState(true);
 
-  // 1. Fetch live DHM Nepal river stations on load
+  // 1. Fetch live 77-district data from Open-Meteo on mount & auto-refresh every 5 minutes
+  useEffect(() => {
+    async function loadAllDistricts() {
+      try {
+        const res = await fetch("/api/weather");
+        if (res.ok) {
+          const liveList: DistrictWeatherSummary[] = await res.json();
+          if (Array.isArray(liveList) && liveList.length > 0) {
+            setDistrictsData(liveList);
+          }
+        }
+      } catch (err) {
+        console.warn("Using offline synoptic cache", err);
+      }
+    }
+
+    loadAllDistricts();
+    // Auto-update every 5 minutes (300,000 ms)
+    const interval = setInterval(loadAllDistricts, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 2. Fetch live DHM Nepal river stations on mount & auto-refresh every 5 minutes
   useEffect(() => {
     async function loadDHM() {
       try {
@@ -70,10 +92,13 @@ export default function Home() {
         console.warn("Using cached DHM station telemetry", err);
       }
     }
+
     loadDHM();
+    const interval = setInterval(loadDHM, 300000);
+    return () => clearInterval(interval);
   }, []);
 
-  // 2. Fetch live RainViewer radar timestamps on load
+  // 3. Fetch live RainViewer radar timestamps on load & refresh every 5 minutes
   useEffect(() => {
     async function loadRadar() {
       try {
@@ -89,10 +114,13 @@ export default function Home() {
         console.warn("Using offline radar configuration", err);
       }
     }
+
     loadRadar();
+    const interval = setInterval(loadRadar, 300000);
+    return () => clearInterval(interval);
   }, []);
 
-  // 3. Radar playback loop
+  // 4. Radar playback loop
   useEffect(() => {
     if (!isPlayingRadar || activeLayer !== "radar" || !radarData?.radarPast?.length) return;
 
@@ -103,36 +131,44 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingRadar, activeLayer, radarData]);
 
-  // Refresh weather and DHM data on demand
+  // 5. On clicking a district, fetch its detailed 72h hourly forecast if not already loaded
+  const handleSelectDistrict = async (districtId: string) => {
+    setSelectedDistrictId(districtId);
+
+    const existing = districtsData.find((d) => d.districtId === districtId);
+    if (!existing || existing.hourly.time.length === 0) {
+      try {
+        const res = await fetch(`/api/weather?districtId=${districtId}`);
+        if (res.ok) {
+          const detailed: DistrictWeatherSummary = await res.json();
+          setDistrictsData((prev) =>
+            prev.map((d) => (d.districtId === districtId ? detailed : d))
+          );
+        }
+      } catch (err) {
+        console.warn("Could not load detailed district hourly data", err);
+      }
+    }
+  };
+
+  // Manual refresh on demand
   const refreshWeatherData = async () => {
     setIsRefreshing(true);
     try {
-      // 1. Refresh DHM Rivers
-      try {
-        const dhmRes = await fetch("/api/dhm");
-        if (dhmRes.ok) {
-          const dhmData = await dhmRes.json();
-          if (dhmData.rivers?.length) setDhmRivers(dhmData.rivers);
-        }
-      } catch {}
+      const [weatherRes, dhmRes] = await Promise.allSettled([
+        fetch("/api/weather"),
+        fetch("/api/dhm"),
+      ]);
 
-      // 2. Refresh key cities from Open-Meteo
-      const keyCityIds = ["kathmandu", "morang", "kaski", "chitwan", "jhapa", "dhanusha"];
-      const updatedList = [...districtsData];
-
-      for (const cityId of keyCityIds) {
-        try {
-          const res = await fetch(`/api/weather?districtId=${cityId}`);
-          if (res.ok) {
-            const data: DistrictWeatherSummary = await res.json();
-            const idx = updatedList.findIndex((d) => d.districtId === cityId);
-            if (idx !== -1) {
-              updatedList[idx] = data;
-            }
-          }
-        } catch {}
+      if (weatherRes.status === "fulfilled" && weatherRes.value.ok) {
+        const wData = await weatherRes.value.json();
+        if (Array.isArray(wData) && wData.length > 0) setDistrictsData(wData);
       }
-      setDistrictsData(updatedList);
+
+      if (dhmRes.status === "fulfilled" && dhmRes.value.ok) {
+        const dData = await dhmRes.value.json();
+        if (dData.rivers?.length) setDhmRivers(dData.rivers);
+      }
     } catch (err) {
       console.error("Refresh error", err);
     } finally {
@@ -208,7 +244,7 @@ export default function Home() {
             radarHost={radarData?.host}
             radarPath={currentRadarPath}
             selectedDistrictId={selectedDistrictId || undefined}
-            onSelectDistrict={(id) => setSelectedDistrictId(id)}
+            onSelectDistrict={handleSelectDistrict}
             mapCenterFocus={mapCenterFocus}
             onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
           />
@@ -232,7 +268,7 @@ export default function Home() {
           <DistrictSelector
             districts={districtsData}
             selectedDistrictId={selectedDistrictId || undefined}
-            onSelectDistrict={(id) => setSelectedDistrictId(id)}
+            onSelectDistrict={handleSelectDistrict}
           />
         </section>
       </main>
@@ -254,13 +290,16 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
+            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+              Live 5-min Auto-sync
+            </span>
+            <span>•</span>
             <span>DHM Nepal Live River Gauges</span>
             <span>•</span>
             <span>ISRO / IMD INSAT-3D Satellite</span>
             <span>•</span>
             <span>Open-Meteo ECMWF / GFS</span>
-            <span>•</span>
-            <span className="text-emerald-400 font-semibold">100% Free & Open Data</span>
           </div>
         </div>
       </footer>
