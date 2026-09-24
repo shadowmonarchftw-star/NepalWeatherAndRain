@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, Clock, RefreshCw, Radio, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Users, Clock, RefreshCw, Radio, ShieldCheck } from "lucide-react";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
 interface FooterProps {
@@ -9,6 +9,8 @@ interface FooterProps {
   lastRefreshedAt: Date | null;
   onRefreshData: () => void;
   isRefreshing?: boolean;
+  // Latest reading timestamp per feed (ISO), shown next to each source
+  sourceTimes?: Partial<Record<"river" | "rain" | "alerts" | "aqi", string>>;
 }
 
 export default function Footer({
@@ -16,10 +18,10 @@ export default function Footer({
   lastRefreshedAt,
   onRefreshData,
   isRefreshing = false,
+  sourceTimes = {},
 }: FooterProps) {
   const t = TRANSLATIONS[lang];
   const [totalVisitors, setTotalVisitors] = useState<number>(1);
-  const [activeVisitors, setActiveVisitors] = useState<number>(1);
   const [relativeTimeText, setRelativeTimeText] = useState<string>("");
   const [countdownSeconds, setCountdownSeconds] = useState<number>(300);
 
@@ -51,7 +53,6 @@ export default function Footer({
             setTotalVisitors(count);
             localStorage.setItem("nepal_weather_total_visits", String(count));
           }
-          if (data.activeVisitors) setActiveVisitors(data.activeVisitors);
         }
       } catch (err) {
         console.warn("Could not sync visitor metrics", err);
@@ -143,27 +144,10 @@ export default function Footer({
                 </div>
               </div>
 
-              {/* Active Online Beacon */}
-              <div className="flex flex-col items-end">
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-600/40 text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  <span className="tabular-nums">{activeVisitors} Online</span>
-                </span>
-                <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  {t.activeMonitoring}
-                </span>
-              </div>
             </div>
 
-            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between">
-              <span>{lang === "np" ? "सार्वजनिक विपद् सतर्कता" : "Disaster Portal Traffic"}</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                {lang === "np" ? "प्रमाणित नागरिक पहुँच" : "Verified Feeds"}
-              </span>
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+              {lang === "np" ? "कुल भ्रमण (प्रति ब्राउजर सत्र एक पटक गनिएको)" : "Total visits (counted once per browser session)"}
             </div>
           </div>
 
@@ -209,42 +193,52 @@ export default function Footer({
             </div>
           </div>
 
-          {/* Card 3: Free Open-Source Meteorological Network Sources */}
+          {/* Card 3: Data sources with latest reading time */}
           <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-xs md:col-span-2 lg:col-span-1">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <Radio className="w-3.5 h-3.5 text-[#C51D34]" />
-                  {lang === "np" ? "प्रत्यक्ष सरकारी तथा उपग्रह स्रोतहरू" : "Verified Open Data Sources"}
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700/50">
-                  100% Free / Open
-                </span>
-              </div>
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-2">
+                <Radio className="w-3.5 h-3.5 text-[#C51D34]" />
+                {lang === "np" ? "तथ्याङ्क स्रोत" : "Data Sources"}
+              </span>
 
-              <div className="grid grid-cols-2 gap-1.5 text-[10px] sm:text-[11px]">
-                <div className="p-1.5 rounded-lg bg-white dark:bg-[#0A0F1A] border border-slate-200/80 dark:border-slate-800/80 font-medium">
-                  🌊 <span className="text-slate-900 dark:text-white font-semibold">DHM Nepal</span>
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 block truncate">100+ River Gauges</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-white dark:bg-[#0A0F1A] border border-slate-200/80 dark:border-slate-800/80 font-medium">
-                  ⚠️ <span className="text-slate-900 dark:text-white font-semibold">NDRRMA BIPAD</span>
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 block truncate">Live Hazard Alerts</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-white dark:bg-[#0A0F1A] border border-slate-200/80 dark:border-slate-800/80 font-medium">
-                  🛰️ <span className="text-slate-900 dark:text-white font-semibold">ISRO INSAT-3D</span>
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 block truncate">Thermal Cloud Feeds</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-white dark:bg-[#0A0F1A] border border-slate-200/80 dark:border-slate-800/80 font-medium">
-                  🌐 <span className="text-slate-900 dark:text-white font-semibold">Open-Meteo</span>
-                  <span className="text-[9px] sm:text-[10px] text-slate-500 block truncate">ECMWF / GFS Forecasts</span>
-                </div>
-              </div>
+              <ul className="space-y-1 text-[10px] sm:text-[11px]">
+                {(
+                  [
+                    [lang === "np" ? "DHM नदी मापन केन्द्र" : "DHM river gauges", "hydrology.gov.np via BIPAD", sourceTimes.river],
+                    [lang === "np" ? "DHM वर्षा मापन केन्द्र" : "DHM rain gauges", "hydrology.gov.np via BIPAD", sourceTimes.rain],
+                    [lang === "np" ? "NDRRMA पूर्वसूचना तथा घटना" : "NDRRMA alerts & incidents", "bipadportal.gov.np", sourceTimes.alerts],
+                    [lang === "np" ? "वायु गुणस्तर" : "Air quality", "pollution.gov.np via BIPAD", sourceTimes.aqi],
+                    [lang === "np" ? "INSAT-3D उपग्रह तस्बिर" : "INSAT-3D satellite imagery", "mausam.imd.gov.in", undefined],
+                    [lang === "np" ? "रडार" : "Radar", "RainViewer", undefined],
+                    [lang === "np" ? "मौसम पूर्वानुमान (मोडेल)" : "Weather forecast (model)", "Open-Meteo", undefined],
+                  ] as [string, string, string | undefined][]
+                ).map(([name, origin, time]) => (
+                  <li key={name} className="flex items-baseline justify-between gap-2">
+                    <span className="min-w-0 truncate">
+                      <span className="font-semibold text-slate-900 dark:text-white">{name}</span>
+                      <span className="text-slate-500 dark:text-slate-400"> · {origin}</span>
+                    </span>
+                    {time && (
+                      <span className="text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
+                        {new Date(time).toLocaleTimeString(lang === "np" ? "ne-NP" : "en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Asia/Kathmandu",
+                        })}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="text-[10px] text-slate-500 dark:text-slate-400 pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center gap-1">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 pt-2 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 flex items-start gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-              <span className="truncate">{t.publicDataNotice}</span>
+              <span>
+                {lang === "np"
+                  ? "समय = प्रत्येक स्रोतको पछिल्लो मापन (NPT)। जिल्ला जोखिम तह मोडेल पूर्वानुमान हो, DHM को आधिकारिक चेतावनी होइन।"
+                  : "Time = latest reading from each feed (NPT). District risk levels are model forecasts, not official DHM warnings."}
+              </span>
             </div>
           </div>
         </div>

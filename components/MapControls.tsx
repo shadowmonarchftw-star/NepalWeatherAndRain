@@ -46,9 +46,9 @@ export default function MapControls({
   return (
     <div className="flex flex-col gap-2 p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-md text-slate-800 dark:text-white transition-colors">
       {/* Top Row: Layer Tabs & Basemap Switcher */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 sm:gap-3">
+      <div className="flex flex-col gap-2.5 sm:gap-3">
         {/* Layer Switcher Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none -mx-1 px-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap sm:overflow-visible scrollbar-none -mx-1 px-1">
           <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-0.5 sm:mr-1 flex items-center gap-1 flex-shrink-0">
             <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
             <span className="hidden xs:inline">{t.mapLayers}</span>
@@ -135,7 +135,7 @@ export default function MapControls({
         </div>
 
         {/* Basemap Switcher */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start lg:self-auto flex-shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start flex-shrink-0">
           <MapIcon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ml-1 mr-0.5 hidden xs:inline" />
           <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mr-1 hidden sm:inline">{t.basemap}</span>
           {(

@@ -59,17 +59,6 @@ async function fetchFromCountAPI(action: "get" | "hit"): Promise<number | null> 
   return null;
 }
 
-// Compute active users based on real traffic volume
-function computeActiveVisitors(total: number): number {
-  if (total <= 1) return 1;
-  if (total <= 5) return Math.min(2, total);
-  if (total <= 25) return Math.min(4, Math.ceil(total * 0.25));
-  // For larger traffic, active concurrent is roughly 5% - 10%
-  const now = new Date();
-  const variance = (now.getMinutes() % 4);
-  return Math.max(2, Math.floor(total * 0.08) + variance);
-}
-
 export async function GET() {
   const now = Date.now();
   // Fetch fresh count if cache is older than 15 seconds
@@ -85,7 +74,6 @@ export async function GET() {
     {
       success: true,
       totalVisitors: cachedCount,
-      activeVisitors: computeActiveVisitors(cachedCount),
       timestamp: new Date().toISOString(),
     },
     {
@@ -110,6 +98,5 @@ export async function POST() {
   return NextResponse.json({
     success: true,
     totalVisitors: cachedCount,
-    activeVisitors: computeActiveVisitors(cachedCount),
   });
 }

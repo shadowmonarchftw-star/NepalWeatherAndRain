@@ -8,6 +8,8 @@ import ProvinceQuickJumper from "@/components/ProvinceQuickJumper";
 import MapControls, { MapLayerType, ForecastTimeWindow, BasemapType } from "@/components/MapControls";
 import FloodHazardIndex from "@/components/FloodHazardIndex";
 import ObservedConditions from "@/components/ObservedConditions";
+import DhmForecastCard from "@/components/DhmForecastCard";
+import NearMe from "@/components/NearMe";
 import DistrictSelector from "@/components/DistrictSelector";
 import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
@@ -182,6 +184,18 @@ export default function Home() {
 
   const observedRainByDistrict = useMemo(() => summarizeObservedRainByDistrict(rainStations), [rainStations]);
 
+  // Latest reading per feed, for the footer's source list
+  const sourceTimes = useMemo(() => {
+    const latest = (times: (string | undefined)[]) =>
+      times.filter((x): x is string => !!x).sort((x, y) => Date.parse(y) - Date.parse(x))[0];
+    return {
+      river: latest(dhmRivers.map((r) => r.waterLevelOn)),
+      rain: latest(rainStations.map((r) => r.measuredOn)),
+      alerts: latest(ndrrmaAlerts.map((x) => x.startedOn)),
+      aqi: latest(aqiStations.map((x) => x.measuredOn)),
+    };
+  }, [dhmRivers, rainStations, ndrrmaAlerts, aqiStations]);
+
   // 3. Fetch live RainViewer radar timestamps on load & refresh every 5 minutes
   useEffect(() => {
     async function loadRadar() {
@@ -330,6 +344,24 @@ export default function Home() {
           />
         </section>
 
+        {/* Near me: nearest gauges and alerts (location stays on device) */}
+        <section>
+          <NearMe
+            rivers={dhmRivers}
+            rainStations={rainStations}
+            aqiStations={aqiStations}
+            alerts={ndrrmaAlerts}
+            districts={districtsData}
+            onFocus={(coords) => setMapCenterFocus(coords)}
+            lang={lang}
+          />
+        </section>
+
+        {/* Official DHM forecast bulletin */}
+        <section>
+          <DhmForecastCard lang={lang} />
+        </section>
+
         {/* 4. Province Quick Jumper */}
         <section>
           <ProvinceQuickJumper
@@ -395,6 +427,7 @@ export default function Home() {
           <FloodHazardIndex
             dhmRivers={dhmRivers}
             ndrrmaAlerts={ndrrmaAlerts}
+            rainStations={rainStations}
             onSelectAlertFocus={(coords) => setMapCenterFocus(coords)}
             lang={lang}
           />
@@ -418,6 +451,7 @@ export default function Home() {
         lastRefreshedAt={lastRefreshedAt}
         onRefreshData={refreshWeatherData}
         isRefreshing={isRefreshing}
+        sourceTimes={sourceTimes}
       />
 
       {/* 9. District Detailed 72h Forecast Modal */}

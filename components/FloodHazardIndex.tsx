@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { HIGHWAY_ADVISORIES } from "@/data/emergencyHotlines";
 import { DHMRiverStation } from "@/app/api/dhm/route";
-import { NDRRMAAlert } from "@/lib/types";
+import { NDRRMAAlert, DHMRainStation } from "@/lib/types";
+import { basinRainNear, BASIN_RAIN_RADIUS_KM } from "@/lib/observedRain";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
 const RISING_WATCH_MARGIN_M = 1.0;
@@ -21,6 +22,7 @@ const RISING_WATCH_MARGIN_M = 1.0;
 interface FloodHazardIndexProps {
   dhmRivers?: DHMRiverStation[];
   ndrrmaAlerts?: NDRRMAAlert[];
+  rainStations?: DHMRainStation[];
   onSelectAlertFocus?: (coords: [number, number]) => void;
   lang?: Language;
 }
@@ -28,6 +30,7 @@ interface FloodHazardIndexProps {
 export default function FloodHazardIndex({
   dhmRivers = [],
   ndrrmaAlerts = [],
+  rainStations = [],
   onSelectAlertFocus,
   lang = "en",
 }: FloodHazardIndexProps) {
@@ -71,9 +74,11 @@ export default function FloodHazardIndex({
       const q = gaugeSearch.toLowerCase();
       list = list.filter((r) => r.name.toLowerCase().includes(q) || r.river.toLowerCase().includes(q));
     }
-    // Sort by DHM status: Danger first, then Warning, then Normal
+    if (gaugeFilter === "rising") return list;
+    // Danger, then Warning, then closest to the DHM warning level; gauges with no DHM threshold last
     const rank = (s: DHMRiverStation) => (s.status === "Danger" ? 2 : s.status === "Warning" ? 1 : 0);
-    return list.sort((a, b) => rank(b) - rank(a));
+    const margin = (s: DHMRiverStation) => (s.warningLevelM !== null ? s.warningLevelM - s.waterLevelM : Infinity);
+    return list.sort((a, b) => rank(b) - rank(a) || margin(a) - margin(b));
   }, [dhmRivers, gaugeFilter, gaugeSearch, risingWatch]);
 
   const displayedGauges = filteredGauges.slice(0, visibleGaugeCount);
@@ -351,6 +356,38 @@ export default function FloodHazardIndex({
                           : `${Math.abs(marginM)} m ${lang === "np" ? "माथि" : "above"}`}
                       </span>
                     </div>
+                    {(() => {
+                      const br = basinRainNear(station, rainStations);
+                      return (
+                        <div
+                          className="flex items-center justify-between text-[11px] mt-1"
+                          title={
+                            lang === "np"
+                              ? `एउटै जलाधार र ${BASIN_RAIN_RADIUS_KM} km भित्रका DHM वर्षा मापन केन्द्र`
+                              : `DHM rain gauges in the same basin within ${BASIN_RAIN_RADIUS_KM} km`
+                          }
+                        >
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {lang === "np" ? "नजिकको जलाधार वर्षा (२४ घ):" : "Basin rain nearby (24h):"}
+                          </span>
+                          <span
+                            className={`font-semibold tabular-nums ${
+                              br && br.max24hMm >= 100
+                                ? "text-red-600 dark:text-red-400"
+                                : br && br.max24hMm >= 50
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            {br
+                              ? `${lang === "np" ? "अधिकतम" : "max"} ${br.max24hMm} mm · ${br.gaugeCount} ${lang === "np" ? "केन्द्र" : br.gaugeCount === 1 ? "gauge" : "gauges"}`
+                              : lang === "np"
+                              ? "नजिक मापन छैन"
+                              : "no gauge nearby"}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center justify-between text-[11px] mt-1">
                       <span className="text-slate-500 dark:text-slate-400">{lang === "np" ? "मापन समय:" : "Reading at:"}</span>
                       <span className="font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
