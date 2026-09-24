@@ -17,7 +17,7 @@ const PERIOD_LABEL: Record<string, { en: string; np: string }> = {
   tomorrow: { en: "Tomorrow", np: "भोलि" },
 };
 
-export default function DhmForecastCard({ lang = "en" }: { lang?: Language }) {
+export default function DhmForecastCard({ lang = "en", refreshKey = 0 }: { lang?: Language; refreshKey?: number }) {
   const [forecast, setForecast] = useState<DhmForecast | null>(null);
   const [failed, setFailed] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -44,13 +44,12 @@ export default function DhmForecastCard({ lang = "en" }: { lang?: Language }) {
         }
       }
     }
+    // Reloaded whenever the page refreshes its feeds (timer, tab return, Refresh button)
     load();
-    const interval = setInterval(load, 30 * 60 * 1000);
     return () => {
       mounted = false;
-      clearInterval(interval);
     };
-  }, []);
+  }, [refreshKey]);
 
   const issued = forecast
     ? new Date(forecast.issuedAt).toLocaleString(np ? "ne-NP" : "en-US", {

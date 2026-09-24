@@ -1,0 +1,42 @@
+name: Data check
+
+# Verifies that every value the app serves matches DHM / NDRRMA BIPAD / DoE / DHM MFD.
+on:
+  schedule:
+    - cron: "15 1 * * *" # 07:00 NPT daily
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/api/**"
+      - "lib/**"
+      - "scripts/verify-data.mjs"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Start app
+        run: |
+          npx next start -p 3000 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:3000/api/visitors && exit 0
+            sleep 1
+          done
+          echo "App did not start" && exit 1
+
+      - name: Verify served data against official sources
+        run: node scripts/verify-data.mjs
+        env:
+          BASE_URL: http://localhost:3000

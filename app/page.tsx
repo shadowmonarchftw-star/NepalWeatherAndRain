@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import NationalSituationBar from "@/components/NationalSituationBar";
@@ -40,6 +40,8 @@ const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
     </div>
   ),
 });
+
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 export default function Home() {
   // Theme State: Default to Light Mode ("light"), toggleable to Dark Mode ("dark")
@@ -82,7 +84,7 @@ export default function Home() {
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isSatelliteViewerOpen, setIsSatelliteViewerOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(() => new Date());
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
   // Map Controls State
   const [activeLayer, setActiveLayer] = useState<MapLayerType>("precipitation");
@@ -95,92 +97,65 @@ export default function Home() {
   const [radarFrameIndex, setRadarFrameIndex] = useState(0);
   const [isPlayingRadar, setIsPlayingRadar] = useState(true);
 
-  // 1. Fetch live 77-district data from Open-Meteo on mount & auto-refresh every 5 minutes
+  // All live feeds are loaded through one function so the 5-minute timer, returning to the tab
+  // and the Refresh button always reload the same set of data.
+  const [forecastRefreshKey, setForecastRefreshKey] = useState(0);
+  const lastRefreshRef = useRef(0);
+
+  const refreshAll = useCallback(async () => {
+    lastRefreshRef.current = Date.now();
+    const json = (url: string) =>
+      fetch(url).then(async (r) => {
+        if (!r.ok) throw new Error(`${url} returned ${r.status}`);
+        return r.json();
+      });
+
+    const [weather, dhm, ndrrma, rain, aqi, inc, radar] = await Promise.allSettled([
+      json("/api/weather"),
+      json("/api/dhm"),
+      json("/api/ndrrma"),
+      json("/api/rain"),
+      json("/api/aqi"),
+      json("/api/incidents"),
+      json("/api/radar"),
+    ]);
+
+    // Open-Meteo forecast: keep the last good forecast if a refresh fails
+    if (weather.status === "fulfilled" && Array.isArray(weather.value) && weather.value.length > 0) {
+      setDistrictsData(weather.value);
+    }
+    // Measured feeds: a failed feed shows as empty ("unavailable") rather than keeping readings of unknown age
+    setDhmRivers(dhm.status === "fulfilled" && Array.isArray(dhm.value.rivers) ? dhm.value.rivers : []);
+    setNdrrmaAlerts(ndrrma.status === "fulfilled" && Array.isArray(ndrrma.value.alerts) ? ndrrma.value.alerts : []);
+    setRainStations(rain.status === "fulfilled" && Array.isArray(rain.value.stations) ? rain.value.stations : []);
+    setAqiStations(aqi.status === "fulfilled" && Array.isArray(aqi.value.stations) ? aqi.value.stations : []);
+    setIncidents(inc.status === "fulfilled" && Array.isArray(inc.value.incidents) ? inc.value.incidents : []);
+    if (radar.status === "fulfilled" && radar.value?.radarPast) {
+      setRadarData(radar.value);
+      if (radar.value.radarPast.length) setRadarFrameIndex(radar.value.radarPast.length - 1);
+    }
+
+    setForecastRefreshKey((k) => k + 1);
+    setLastRefreshedAt(new Date());
+  }, []);
+
+  // Load on mount, every 5 minutes, and when the user comes back to the tab
+  // (mobile browsers pause timers in background tabs)
   useEffect(() => {
-    async function loadAllDistricts() {
-      try {
-        const res = await fetch("/api/weather");
-        if (res.ok) {
-          const liveList: DistrictWeatherSummary[] = await res.json();
-          if (Array.isArray(liveList) && liveList.length > 0) {
-            setDistrictsData(liveList);
-          }
-        }
-      } catch (err) {
-        console.warn("Open-Meteo district forecast unavailable", err);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
+    refreshAll();
+    const interval = setInterval(refreshAll, REFRESH_INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastRefreshRef.current > 60_000) {
+        refreshAll();
       }
-    }
-
-    loadAllDistricts();
-    const interval = setInterval(loadAllDistricts, 300000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 2. Fetch live DHM Nepal river stations on mount & auto-refresh every 5 minutes
-  useEffect(() => {
-    async function loadDHM() {
-      try {
-        const res = await fetch("/api/dhm");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.rivers)) {
-            setDhmRivers(data.rivers);
-          }
-        } else {
-          // Feed down: show nothing rather than readings of unknown age
-          setDhmRivers([]);
-        }
-      } catch (err) {
-        console.warn("Using cached DHM station telemetry", err);
-      }
-    }
-
-    loadDHM();
-    const interval = setInterval(loadDHM, 300000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 3. Fetch live NDRRMA BIPAD disaster alerts on mount & auto-refresh every 5 minutes
-  useEffect(() => {
-    async function loadNDRRMA() {
-      try {
-        const res = await fetch("/api/ndrrma");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.alerts)) {
-            setNdrrmaAlerts(data.alerts);
-          }
-        } else {
-          setNdrrmaAlerts([]);
-        }
-      } catch (err) {
-        console.warn("Using cached NDRRMA alerts", err);
-      }
-    }
-
-    loadNDRRMA();
-    const interval = setInterval(loadNDRRMA, 300000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Measured conditions from BIPAD: DHM rain gauges, air quality, verified incidents (every 5 minutes)
-  useEffect(() => {
-    async function loadMeasured() {
-      const [rainRes, aqiRes, incRes] = await Promise.allSettled([
-        fetch("/api/rain").then((r) => r.json()),
-        fetch("/api/aqi").then((r) => r.json()),
-        fetch("/api/incidents").then((r) => r.json()),
-      ]);
-      // A failed feed shows as empty ("unavailable") rather than keeping readings of unknown age
-      setRainStations(rainRes.status === "fulfilled" && Array.isArray(rainRes.value.stations) ? rainRes.value.stations : []);
-      setAqiStations(aqiRes.status === "fulfilled" && Array.isArray(aqiRes.value.stations) ? aqiRes.value.stations : []);
-      setIncidents(incRes.status === "fulfilled" && Array.isArray(incRes.value.incidents) ? incRes.value.incidents : []);
-    }
-
-    loadMeasured();
-    const interval = setInterval(loadMeasured, 300000);
-    return () => clearInterval(interval);
-  }, []);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refreshAll]);
 
   const observedRainByDistrict = useMemo(() => summarizeObservedRainByDistrict(rainStations), [rainStations]);
 
@@ -195,28 +170,6 @@ export default function Home() {
       aqi: latest(aqiStations.map((x) => x.measuredOn)),
     };
   }, [dhmRivers, rainStations, ndrrmaAlerts, aqiStations]);
-
-  // 3. Fetch live RainViewer radar timestamps on load & refresh every 5 minutes
-  useEffect(() => {
-    async function loadRadar() {
-      try {
-        const res = await fetch("/api/radar");
-        if (res.ok) {
-          const data = await res.json();
-          setRadarData(data);
-          if (data.radarPast?.length) {
-            setRadarFrameIndex(data.radarPast.length - 1);
-          }
-        }
-      } catch (err) {
-        console.warn("Using offline radar configuration", err);
-      }
-    }
-
-    loadRadar();
-    const interval = setInterval(loadRadar, 300000);
-    return () => clearInterval(interval);
-  }, []);
 
   // 4. Radar playback loop
   useEffect(() => {
@@ -261,34 +214,7 @@ export default function Home() {
   const refreshWeatherData = async () => {
     setIsRefreshing(true);
     try {
-      const [weatherRes, dhmRes, ndrrmaRes] = await Promise.allSettled([
-        fetch("/api/weather"),
-        fetch("/api/dhm"),
-        fetch("/api/ndrrma"),
-      ]);
-
-      if (weatherRes.status === "fulfilled" && weatherRes.value.ok) {
-        const wData = await weatherRes.value.json();
-        if (Array.isArray(wData) && wData.length > 0) setDistrictsData(wData);
-      }
-
-      if (dhmRes.status === "fulfilled" && dhmRes.value.ok) {
-        const dData = await dhmRes.value.json();
-        if (Array.isArray(dData.rivers)) setDhmRivers(dData.rivers);
-      } else if (dhmRes.status === "fulfilled") {
-        setDhmRivers([]);
-      }
-
-      if (ndrrmaRes.status === "fulfilled" && ndrrmaRes.value.ok) {
-        const nData = await ndrrmaRes.value.json();
-        if (Array.isArray(nData.alerts)) setNdrrmaAlerts(nData.alerts);
-      } else if (ndrrmaRes.status === "fulfilled") {
-        setNdrrmaAlerts([]);
-      }
-
-      setLastRefreshedAt(new Date());
-    } catch (err) {
-      console.error("Refresh error", err);
+      await refreshAll();
     } finally {
       setIsRefreshing(false);
     }
@@ -359,7 +285,7 @@ export default function Home() {
 
         {/* Official DHM forecast bulletin */}
         <section>
-          <DhmForecastCard lang={lang} />
+          <DhmForecastCard lang={lang} refreshKey={forecastRefreshKey} />
         </section>
 
         {/* 4. Province Quick Jumper */}
