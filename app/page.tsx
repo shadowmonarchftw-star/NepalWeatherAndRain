@@ -12,6 +12,7 @@ import DistrictSelector from "@/components/DistrictSelector";
 import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
 import LiveSatelliteModal from "@/components/LiveSatelliteModal";
+import Footer from "@/components/Footer";
 import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
 import { DistrictWeatherSummary, RainViewerData, NDRRMAAlert } from "@/lib/types";
 import { generateSynopticFallbackForDistrict, getBayOfBengalTelemetry } from "@/lib/openMeteo";
@@ -73,10 +74,11 @@ export default function Home() {
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number>(0);
 
-  // Modals
+  // Modals & Timers
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isSatelliteViewerOpen, setIsSatelliteViewerOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(() => new Date());
 
   // Map Controls State
   const [activeLayer, setActiveLayer] = useState<MapLayerType>("precipitation");
@@ -237,6 +239,8 @@ export default function Home() {
         const nData = await ndrrmaRes.value.json();
         if (Array.isArray(nData.alerts)) setNdrrmaAlerts(nData.alerts);
       }
+
+      setLastRefreshedAt(new Date());
     } catch (err) {
       console.error("Refresh error", err);
     } finally {
@@ -376,37 +380,13 @@ export default function Home() {
         </section>
       </main>
 
-      {/* 8. Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080D16] text-slate-600 dark:text-slate-400 py-6 mt-8 transition-colors">
-        <div className="h-1 w-full flex mb-4">
-          <div className="h-full w-1/3 bg-[#C51D34]" />
-          <div className="h-full w-1/3 bg-[#FFFFFF]" />
-          <div className="h-full w-1/3 bg-[#003893]" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900 dark:text-white">
-              {lang === "np" ? "नेपाल मौसम तथा वर्षा ट्रयाकर" : "Nepal Weather & Rain Tracker"}
-            </span>
-            <span>•</span>
-            <span>{lang === "np" ? "बाढी पूर्वसूचना प्रणाली" : "Flood Early Warning System"}</span>
-          </div>
-
-          <div className="flex items-center gap-4 flex-wrap justify-center text-slate-500 dark:text-slate-400">
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-              {lang === "np" ? "प्रत्येक ५ मिनेटमा अपडेट" : "Live 5-min Auto-sync"}
-            </span>
-            <span>•</span>
-            <span>DHM Nepal Live River Gauges</span>
-            <span>•</span>
-            <span>ISRO / IMD INSAT-3D Satellite</span>
-            <span>•</span>
-            <span>Open-Meteo ECMWF / GFS</span>
-          </div>
-        </div>
-      </footer>
+      {/* 8. Comprehensive Footer with Live Visitors, Telemetry Sync & Attribution */}
+      <Footer
+        lang={lang}
+        lastRefreshedAt={lastRefreshedAt}
+        onRefreshData={refreshWeatherData}
+        isRefreshing={isRefreshing}
+      />
 
       {/* 9. District Detailed 72h Forecast Modal */}
       <DistrictDetailModal
