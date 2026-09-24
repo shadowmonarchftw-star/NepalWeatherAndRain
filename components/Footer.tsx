@@ -18,8 +18,8 @@ export default function Footer({
   isRefreshing = false,
 }: FooterProps) {
   const t = TRANSLATIONS[lang];
-  const [totalVisitors, setTotalVisitors] = useState<number>(18450);
-  const [activeVisitors, setActiveVisitors] = useState<number>(68);
+  const [totalVisitors, setTotalVisitors] = useState<number>(1);
+  const [activeVisitors, setActiveVisitors] = useState<number>(1);
   const [relativeTimeText, setRelativeTimeText] = useState<string>("");
   const [countdownSeconds, setCountdownSeconds] = useState<number>(300);
 
@@ -29,7 +29,12 @@ export default function Footer({
 
     async function trackVisit() {
       try {
-        const hasCounted = sessionStorage.getItem("nepal_weather_session_counted");
+        const localCached = typeof window !== "undefined" ? localStorage.getItem("nepal_weather_total_visits") : null;
+        if (localCached && Number(localCached) >= 1) {
+          setTotalVisitors(Number(localCached));
+        }
+
+        const hasCounted = typeof window !== "undefined" ? sessionStorage.getItem("nepal_weather_session_counted") : "true";
         let res: Response;
 
         if (!hasCounted) {
@@ -41,7 +46,11 @@ export default function Footer({
 
         if (res.ok && isMounted) {
           const data = await res.json();
-          if (data.totalVisitors) setTotalVisitors(data.totalVisitors);
+          if (data.totalVisitors !== undefined) {
+            const count = Math.max(data.totalVisitors, Number(localCached || 1));
+            setTotalVisitors(count);
+            localStorage.setItem("nepal_weather_total_visits", String(count));
+          }
           if (data.activeVisitors) setActiveVisitors(data.activeVisitors);
         }
       } catch (err) {
