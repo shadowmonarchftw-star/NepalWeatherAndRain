@@ -1,46 +1,43 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, MapPin, Filter, CloudRain, AlertCircle, Mountain } from "lucide-react";
+import { Search, MapPin, CloudRain, Mountain } from "lucide-react";
 import { DistrictWeatherSummary } from "@/lib/types";
+import { Language, TRANSLATIONS } from "@/lib/translations";
 
 interface DistrictSelectorProps {
   districts: DistrictWeatherSummary[];
   selectedDistrictId?: string;
   onSelectDistrict: (districtId: string) => void;
+  lang?: Language;
 }
-
-const PROVINCE_TABS = [
-  { id: 0, name: "All 77 Districts" },
-  { id: 1, name: "Koshi" },
-  { id: 2, name: "Madhesh" },
-  { id: 3, name: "Bagmati" },
-  { id: 4, name: "Gandaki" },
-  { id: 5, name: "Lumbini" },
-  { id: 6, name: "Karnali" },
-  { id: 7, name: "Sudurpashchim" },
-];
 
 export default function DistrictSelector({
   districts,
   selectedDistrictId,
   onSelectDistrict,
+  lang = "en",
 }: DistrictSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeProvinceId, setActiveProvinceId] = useState(0);
   const [alertFilter, setAlertFilter] = useState<string>("all");
+  const t = TRANSLATIONS[lang];
+
+  const PROVINCE_TABS = [
+    { id: 0, name: t.allDistricts },
+    { id: 1, name: lang === "np" ? "कोशी" : "Koshi" },
+    { id: 2, name: lang === "np" ? "मधेश" : "Madhesh" },
+    { id: 3, name: lang === "np" ? "बागमती" : "Bagmati" },
+    { id: 4, name: lang === "np" ? "गण्डकी" : "Gandaki" },
+    { id: 5, name: lang === "np" ? "लुम्बिनी" : "Lumbini" },
+    { id: 6, name: lang === "np" ? "कर्णाली" : "Karnali" },
+    { id: 7, name: lang === "np" ? "सुदूरपश्चिम" : "Sudurpashchim" },
+  ];
 
   const filteredDistricts = useMemo(() => {
     return districts.filter((d) => {
-      // Province match
-      if (activeProvinceId !== 0 && d.provinceId !== activeProvinceId) {
-        return false;
-      }
-      // Alert level match
-      if (alertFilter !== "all" && d.alertLevel.toLowerCase() !== alertFilter.toLowerCase()) {
-        return false;
-      }
-      // Search term match
+      if (activeProvinceId !== 0 && d.provinceId !== activeProvinceId) return false;
+      if (alertFilter !== "all" && d.alertLevel.toLowerCase() !== alertFilter.toLowerCase()) return false;
       if (searchTerm.trim() !== "") {
         const query = searchTerm.toLowerCase();
         return (
@@ -55,33 +52,33 @@ export default function DistrictSelector({
   }, [districts, activeProvinceId, alertFilter, searchTerm]);
 
   return (
-    <div className="rounded-2xl bg-gradient-to-b from-[#0C1C36] to-[#071326] border-2 border-[#003893] p-5 shadow-2xl text-white">
+    <div className="rounded-2xl bg-[#0F172A] border border-slate-800 p-5 shadow-lg text-white">
       {/* Title & Search bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-[#1A365D]">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-slate-800">
         <div>
           <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#DC143C]" />
-            <span>77 Districts Rain & Forecast Explorer</span>
+            <MapPin className="w-5 h-5 text-[#C51D34]" />
+            <span>{t.explorerTitle}</span>
           </h3>
-          <p className="text-xs text-blue-300">
-            Click any district to view 72h hourly rain curves and flood assessments
+          <p className="text-xs text-slate-400">
+            {t.explorerSubtitle}
           </p>
         </div>
 
         {/* Search input */}
         <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-blue-400" />
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search district, city, or river..."
+            placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#061021] border border-[#1A365D] text-xs text-white placeholder-blue-300/60 focus:outline-none focus:border-[#003893] focus:ring-1 focus:ring-[#003893]"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#0A0F1A] border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#003893]"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className="absolute right-2.5 top-2.5 text-xs text-blue-400 hover:text-white"
+              className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-white"
             >
               ✕
             </button>
@@ -97,10 +94,10 @@ export default function DistrictSelector({
             <button
               key={tab.id}
               onClick={() => setActiveProvinceId(tab.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border ${
                 activeProvinceId === tab.id
-                  ? "bg-[#DC143C] text-white shadow-md shadow-[#DC143C]/30 border border-white/20"
-                  : "bg-[#07152B] text-blue-300 hover:bg-[#112648] border border-[#16335C]"
+                  ? "bg-[#C51D34] text-white border-white/20 shadow-sm"
+                  : "bg-[#0A0F1A] text-slate-400 hover:text-white border-slate-800 hover:bg-[#1E293B]"
               }`}
             >
               {tab.name}
@@ -108,25 +105,30 @@ export default function DistrictSelector({
           ))}
         </div>
 
-        {/* Alert Level Pill Filters */}
+        {/* Alert Filters */}
         <div className="flex items-center gap-1 self-start sm:self-auto">
-          {["all", "danger", "warning", "watch"].map((lvl) => (
+          {[
+            { id: "all", label: t.filterAll },
+            { id: "danger", label: t.filterDanger },
+            { id: "warning", label: t.filterWarning },
+            { id: "watch", label: t.filterWatch },
+          ].map((f) => (
             <button
-              key={lvl}
-              onClick={() => setAlertFilter(lvl)}
-              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase transition-all ${
-                alertFilter === lvl
-                  ? lvl === "danger"
-                    ? "bg-[#DC143C] text-white"
-                    : lvl === "warning"
+              key={f.id}
+              onClick={() => setAlertFilter(f.id)}
+              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                alertFilter === f.id
+                  ? f.id === "danger"
+                    ? "bg-[#C51D34] text-white"
+                    : f.id === "warning"
                     ? "bg-amber-500 text-black"
-                    : lvl === "watch"
+                    : f.id === "watch"
                     ? "bg-yellow-500 text-black"
-                    : "bg-blue-600 text-white"
-                  : "bg-[#061021] text-blue-300 hover:text-white border border-[#16335C]"
+                    : "bg-[#003893] text-white"
+                  : "bg-[#0A0F1A] text-slate-400 hover:text-white border border-slate-800"
               }`}
             >
-              {lvl}
+              {f.label}
             </button>
           ))}
         </div>
@@ -135,23 +137,22 @@ export default function DistrictSelector({
       {/* District Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-[460px] overflow-y-auto pr-1">
         {filteredDistricts.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-blue-300 text-xs">
-            No districts found matching &ldquo;{searchTerm}&rdquo;
+          <div className="col-span-full py-12 text-center text-slate-400 text-xs">
+            {t.noDistrictsFound} &ldquo;{searchTerm}&rdquo;
           </div>
         ) : (
           filteredDistricts.map((d) => {
             const isSelected = selectedDistrictId === d.districtId;
             const isDanger = d.alertLevel === "Danger";
             const isWarning = d.alertLevel === "Warning";
-            const isWatch = d.alertLevel === "Watch";
 
             const badgeBg = isDanger
-              ? "bg-[#DC143C] text-white border-white/30 animate-pulse"
+              ? "bg-[#C51D34] text-white border-white/20 animate-pulse"
               : isWarning
               ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-              : isWatch
-              ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
-              : "bg-emerald-500/20 text-emerald-400 border-emerald-500/40";
+              : "bg-slate-800 text-slate-300 border-slate-700";
+
+            const name = lang === "np" ? d.nepaliName : d.districtName;
 
             return (
               <button
@@ -159,37 +160,35 @@ export default function DistrictSelector({
                 onClick={() => onSelectDistrict(d.districtId)}
                 className={`p-3 rounded-xl text-left transition-all border flex flex-col justify-between ${
                   isSelected
-                    ? "bg-[#0F2850] border-cyan-400 ring-2 ring-cyan-400 shadow-xl"
+                    ? "bg-[#1E293B] border-cyan-400 ring-2 ring-cyan-400/40 shadow-lg"
                     : isDanger
-                    ? "bg-[#09152B] border-[#DC143C]/60 hover:bg-[#0F2242] shadow-md shadow-red-950/40"
-                    : "bg-[#07152B] border-[#16335C] hover:border-[#1E427B] hover:bg-[#0B1E3D]"
+                    ? "bg-[#0A0F1A] border-[#C51D34]/50 hover:bg-[#162035]"
+                    : "bg-[#0A0F1A] border-slate-800 hover:border-slate-700 hover:bg-[#162035]"
                 }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-1 mb-1">
                     <span className="font-bold text-xs text-white line-clamp-1">
-                      {d.districtName}
+                      {name}
                     </span>
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase border flex-shrink-0 ${badgeBg}`}
-                    >
+                    <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase border flex-shrink-0 ${badgeBg}`}>
                       {d.alertLevel}
                     </span>
                   </div>
 
-                  <div className="text-[10px] text-blue-300 flex items-center justify-between mb-2">
-                    <span>{d.nepaliName}</span>
-                    <span className="text-blue-400 font-medium">{d.provinceName.split(" ")[0]}</span>
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between mb-2">
+                    <span>{lang === "np" ? d.districtName : d.nepaliName}</span>
+                    <span className="text-slate-400 font-medium">{d.provinceName.split(" ")[0]}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#122A4E] flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[#FF4D6D] font-bold text-xs">
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-[#FF4D6D] font-bold text-xs tabular-nums">
                     <CloudRain className="w-3.5 h-3.5 text-blue-400" />
-                    <span>{d.total24hRain} mm/24h</span>
+                    <span>{d.total24hRain} mm</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[10px] text-blue-300">
+                  <div className="flex items-center gap-1 text-[10px] text-slate-400 tabular-nums">
                     <Mountain className="w-3 h-3 text-cyan-400" />
                     <span>{d.elevation}m</span>
                   </div>

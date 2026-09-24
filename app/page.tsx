@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Header from "@/components/Header";
+import NationalSituationBar from "@/components/NationalSituationBar";
+import ProvinceQuickJumper from "@/components/ProvinceQuickJumper";
 import BayOfBengalTracker from "@/components/BayOfBengalTracker";
 import MapControls, { MapLayerType, ForecastTimeWindow, BasemapType } from "@/components/MapControls";
 import FloodHazardIndex from "@/components/FloodHazardIndex";
@@ -14,22 +16,26 @@ import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
 import { DistrictWeatherSummary, RainViewerData } from "@/lib/types";
 import { generateSynopticFallbackForDistrict, getBayOfBengalTelemetry } from "@/lib/openMeteo";
 import { DHMRiverStation } from "@/app/api/dhm/route";
+import { Language } from "@/lib/translations";
 
 // Dynamically import Leaflet Map with SSR disabled
 const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[520px] rounded-2xl bg-[#060E1D] border-2 border-[#003893] flex flex-col items-center justify-center text-blue-200">
-      <div className="w-10 h-10 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mb-3" />
+    <div className="w-full h-[520px] rounded-2xl bg-[#080D16] border border-slate-800 flex flex-col items-center justify-center text-slate-300">
+      <div className="w-10 h-10 border-4 border-[#C51D34] border-t-transparent rounded-full animate-spin mb-3" />
       <span className="text-sm font-semibold tracking-wide">
-        Loading Free Nepal Meteorological Map & Radar...
+        Loading Nepal Meteorological GIS Engine...
       </span>
-      <span className="text-xs text-blue-400/80 mt-1">Watermark-free open GIS engine</span>
+      <span className="text-xs text-slate-500 mt-1">Free open-source vector basemap</span>
     </div>
   ),
 });
 
 export default function Home() {
+  // Language State: Defaults to Nepali (np) for local relevance, toggleable to English (en)
+  const [lang, setLang] = useState<Language>("np");
+
   // Telemetry & Districts
   const telemetry = useMemo(() => getBayOfBengalTelemetry(), []);
   const initialDistricts = useMemo(
@@ -40,6 +46,9 @@ export default function Home() {
   const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>(initialDistricts);
   const [dhmRivers, setDhmRivers] = useState<DHMRiverStation[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
+  const [selectedProvinceId, setSelectedProvinceId] = useState<number>(0);
+
+  // Modals
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isSatelliteViewerOpen, setIsSatelliteViewerOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -72,7 +81,6 @@ export default function Home() {
     }
 
     loadAllDistricts();
-    // Auto-update every 5 minutes (300,000 ms)
     const interval = setInterval(loadAllDistricts, 300000);
     return () => clearInterval(interval);
   }, []);
@@ -131,7 +139,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [isPlayingRadar, activeLayer, radarData]);
 
-  // 5. On clicking a district, fetch its detailed 72h hourly forecast if not already loaded
+  // 5. On clicking a district, fetch detailed 72h hourly forecast if needed
   const handleSelectDistrict = async (districtId: string) => {
     setSelectedDistrictId(districtId);
 
@@ -148,6 +156,14 @@ export default function Home() {
       } catch (err) {
         console.warn("Could not load detailed district hourly data", err);
       }
+    }
+  };
+
+  // 6. Handle Province Quick Jumper selection
+  const handleSelectProvince = (provId: number, center?: [number, number]) => {
+    setSelectedProvinceId(provId);
+    if (center) {
+      setMapCenterFocus(center);
     }
   };
 
@@ -176,11 +192,6 @@ export default function Home() {
     }
   };
 
-  // Focus map onto Eastern Nepal (first impact point of Bay of Bengal)
-  const handleFocusEasternNepal = () => {
-    setMapCenterFocus([26.9, 87.4]);
-  };
-
   // Find currently selected district for modal
   const selectedDistrict = useMemo(() => {
     if (!selectedDistrictId) return null;
@@ -190,34 +201,64 @@ export default function Home() {
   // Current radar frame path
   const currentRadarPath = radarData?.radarPast?.[radarFrameIndex]?.path;
   const currentRadarTime = radarData?.radarPast?.[radarFrameIndex]
-    ? new Date(radarData.radarPast[radarFrameIndex].time * 1000).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Asia/Kathmandu",
-      }) + " NPT"
+    ? new Date(radarData.radarPast[radarFrameIndex].time * 1000).toLocaleTimeString(
+        lang === "np" ? "ne-NP" : "en-US",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Asia/Kathmandu",
+        }
+      ) + " NPT"
     : undefined;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#050D1A] text-white">
-      {/* 1. Header with Flag Theme & Live Ticker */}
+    <div className="min-h-screen flex flex-col bg-[#0A0F1A] text-slate-100">
+      {/* 1. Header with Language Switcher & Authentic Flag Accents */}
       <Header
+        lang={lang}
+        onToggleLang={() => setLang(lang === "en" ? "np" : "en")}
         onOpenEmergency={() => setIsEmergencyOpen(true)}
         onRefreshData={refreshWeatherData}
         isRefreshing={isRefreshing}
       />
 
       {/* Main Content Dashboard */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* 2. Bay of Bengal Synoptic Depression Tracker */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+        {/* 2. Top At-A-Glance National Situation Bar */}
         <section>
-          <BayOfBengalTracker
+          <NationalSituationBar
+            districts={districtsData}
+            dhmRivers={dhmRivers}
             telemetry={telemetry}
-            onFocusEasternNepal={handleFocusEasternNepal}
+            lang={lang}
+            onFocusPeakDistrict={(dId) => {
+              const d = districtsData.find((x) => x.districtId === dId);
+              if (d) setMapCenterFocus([d.lat, d.lon]);
+            }}
           />
         </section>
 
-        {/* 3. Interactive Map & Layer Controls */}
-        <section className="space-y-3">
+        {/* 3. Bay of Bengal Synoptic Depression Tracker */}
+        <section>
+          <BayOfBengalTracker
+            telemetry={telemetry}
+            onFocusEasternNepal={() => setMapCenterFocus([26.9, 87.4])}
+            lang={lang}
+          />
+        </section>
+
+        {/* 4. Province Quick Jumper */}
+        <section>
+          <ProvinceQuickJumper
+            districts={districtsData}
+            selectedProvinceId={selectedProvinceId}
+            onSelectProvince={handleSelectProvince}
+            lang={lang}
+          />
+        </section>
+
+        {/* 5. Interactive Map & Layer Controls */}
+        <section className="space-y-2.5">
           <MapControls
             activeLayer={activeLayer}
             onChangeLayer={setActiveLayer}
@@ -232,6 +273,7 @@ export default function Home() {
             onChangeRadarFrame={setRadarFrameIndex}
             currentRadarTime={currentRadarTime}
             onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
+            lang={lang}
           />
 
           <NepalWeatherMap
@@ -247,10 +289,11 @@ export default function Home() {
             onSelectDistrict={handleSelectDistrict}
             mapCenterFocus={mapCenterFocus}
             onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
+            lang={lang}
           />
         </section>
 
-        {/* 4. River Basin Flood Hazard Index & Live DHM Gauges */}
+        {/* 6. River Basin Flood Hazard Index & Live DHM Gauges */}
         <section>
           <FloodHazardIndex
             dhmRivers={dhmRivers}
@@ -260,39 +303,42 @@ export default function Home() {
               else if (basinId.includes("gandaki")) setMapCenterFocus([28.1, 84.2]);
               else if (basinId.includes("karnali")) setMapCenterFocus([29.1, 81.8]);
             }}
+            lang={lang}
           />
         </section>
 
-        {/* 5. 77 Districts Rain & Forecast Explorer */}
+        {/* 7. 77 Districts Rain & Forecast Explorer */}
         <section>
           <DistrictSelector
             districts={districtsData}
             selectedDistrictId={selectedDistrictId || undefined}
             onSelectDistrict={handleSelectDistrict}
+            lang={lang}
           />
         </section>
       </main>
 
-      {/* 6. Footer */}
-      <footer className="border-t border-[#003893] bg-[#030914] text-white py-8 mt-12">
-        {/* Flag Color Stripe */}
-        <div className="h-1 w-full flex mb-6">
-          <div className="h-full w-1/3 bg-[#DC143C]" />
+      {/* 8. Footer */}
+      <footer className="border-t border-slate-800 bg-[#080D16] text-slate-400 py-6 mt-8">
+        <div className="h-1 w-full flex mb-4">
+          <div className="h-full w-1/3 bg-[#C51D34]" />
           <div className="h-full w-1/3 bg-[#FFFFFF]" />
           <div className="h-full w-1/3 bg-[#003893]" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-blue-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-white">Nepal Weather & Rain Tracker</span>
+            <span className="font-bold text-white">
+              {lang === "np" ? "नेपाल मौसम तथा वर्षा ट्रयाकर" : "Nepal Weather & Rain Tracker"}
+            </span>
             <span>•</span>
-            <span>नेपाल मौसम तथा बाढी पूर्वसूचना प्रणाली</span>
+            <span>{lang === "np" ? "बाढी पूर्वसूचना प्रणाली" : "Flood Early Warning System"}</span>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap justify-center">
+          <div className="flex items-center gap-4 flex-wrap justify-center text-slate-400">
             <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
-              Live 5-min Auto-sync
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              {lang === "np" ? "प्रत्येक ५ मिनेटमा अपडेट" : "Live 5-min Auto-sync"}
             </span>
             <span>•</span>
             <span>DHM Nepal Live River Gauges</span>
@@ -304,19 +350,21 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* 7. District Detailed 72h Forecast Modal */}
+      {/* 9. District Detailed 72h Forecast Modal */}
       <DistrictDetailModal
         district={selectedDistrict}
         onClose={() => setSelectedDistrictId(null)}
+        lang={lang}
       />
 
-      {/* 8. Emergency Hotlines Modal */}
+      {/* 10. Emergency Hotlines Modal */}
       <EmergencyModal
         isOpen={isEmergencyOpen}
         onClose={() => setIsEmergencyOpen(false)}
+        lang={lang}
       />
 
-      {/* 9. Live INSAT-3D Satellite Viewer Modal */}
+      {/* 11. Live INSAT-3D Satellite Viewer Modal */}
       <LiveSatelliteModal
         isOpen={isSatelliteViewerOpen}
         onClose={() => setIsSatelliteViewerOpen(false)}

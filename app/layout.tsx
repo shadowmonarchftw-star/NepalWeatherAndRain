@@ -1,17 +1,31 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const devanagari = Noto_Sans_Devanagari({
+  subsets: ["devanagari"],
+  variable: "--font-devanagari",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#050d1a",
+  themeColor: "#0A0F1A",
 };
 
 export const metadata: Metadata = {
-  title: "Nepal Weather & Rain Tracker | नेपाल मौसम तथा बाढी अनुगमन",
+  title: "Nepal Weather & Rain Tracker | नेपाल मौसम तथा बाढी अनुगमन प्रणाली",
   description:
-    "Real-time precipitation, flood alerts, and Bay of Bengal monsoon depression tracking across all 7 provinces and 77 districts of Nepal.",
+    "Real-time precipitation, flood alerts, and Bay of Bengal monsoon depression tracking across all 7 provinces and 77 districts of Nepal. Supported by DHM Nepal, Open-Meteo & INSAT-3D satellite telemetry.",
   keywords: [
     "Nepal Weather",
     "Nepal Rain Forecast",
@@ -31,8 +45,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark h-full">
-      <body className="min-h-full flex flex-col bg-[#050D1A] text-white selection:bg-[#DC143C] selection:text-white">
+    <html
+      lang="ne"
+      className={`${inter.variable} ${devanagari.variable} dark h-full`}
+    >
+      <body className="min-h-full flex flex-col bg-[#0A0F1A] text-slate-100 font-sans selection:bg-[#DC143C] selection:text-white">
         {children}
       </body>
     </html>
