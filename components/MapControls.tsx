@@ -180,6 +180,9 @@ export default function MapControls({
                 </button>
               ))}
             </div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {lang === "np" ? "Open-Meteo मोडेल पूर्वानुमान (मापन होइन)" : "Open-Meteo model forecast (not measured)"}
+            </span>
           </div>
         ) : activeLayer === "radar" ? (
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
@@ -223,7 +226,13 @@ export default function MapControls({
         ) : (
           <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
             <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mr-1" />
-            <span>{t.sensorSource}</span>
+            <span>
+              {activeLayer === "aqi"
+                ? lang === "np"
+                  ? "स्रोत: वातावरण विभाग (pollution.gov.np)"
+                  : "Source: Department of Environment (pollution.gov.np)"
+                : t.sensorSource}
+            </span>
           </div>
         )}
 

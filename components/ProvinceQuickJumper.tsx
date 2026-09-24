@@ -59,6 +59,11 @@ export default function ProvinceQuickJumper({
           <button
             key={prov.id}
             onClick={() => onSelectProvince(prov.id, prov.center)}
+            title={
+              lang === "np"
+                ? "प्रदेशको कुनै जिल्लामा आजको अधिकतम पूर्वानुमानित वर्षा (Open-Meteo)"
+                : "Highest forecast rain today in any district of this province (Open-Meteo)"
+            }
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border flex-shrink-0 ${
               isSelected
                 ? "bg-[#003893] text-white border-blue-400 shadow-xs"
@@ -69,7 +74,7 @@ export default function ProvinceQuickJumper({
             <span
               className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold tabular-nums ${badgeColor}`}
             >
-              {maxRain} mm
+              {lang === "np" ? "पूर्वानुमान" : "fcst"} {maxRain} mm
             </span>
           </button>
         );
