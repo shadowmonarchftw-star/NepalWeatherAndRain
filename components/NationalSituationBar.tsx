@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import { CloudRain, AlertTriangle, Waves, Compass, ArrowUpRight } from "lucide-react";
-import { DistrictWeatherSummary, BayOfBengalTelemetry } from "@/lib/types";
+import { CloudRain, AlertTriangle, Waves, ShieldAlert, ArrowUpRight } from "lucide-react";
+import { DistrictWeatherSummary, NDRRMAAlert } from "@/lib/types";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
 interface NationalSituationBarProps {
   districts: DistrictWeatherSummary[];
   dhmRivers: DHMRiverStation[];
-  telemetry: BayOfBengalTelemetry;
+  ndrrmaAlerts: NDRRMAAlert[];
   lang: Language;
   onFocusPeakDistrict?: (districtId: string) => void;
 }
@@ -17,7 +17,7 @@ interface NationalSituationBarProps {
 export default function NationalSituationBar({
   districts,
   dhmRivers,
-  telemetry,
+  ndrrmaAlerts,
   lang,
   onFocusPeakDistrict,
 }: NationalSituationBarProps) {
@@ -32,7 +32,7 @@ export default function NationalSituationBar({
   const warningCount = districts.filter((d) => d.alertLevel === "Warning").length;
 
   const elevatedRivers = dhmRivers.filter(
-    (r) => r.status === "Warning" || r.status === "Danger" || r.percentOfWarning >= 75
+    (r) => r.status === "Warning" || r.status === "Danger"
   ).length;
 
   return (
@@ -50,7 +50,7 @@ export default function NationalSituationBar({
           <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">
             {peakDistrict?.total24hRain ?? 0}
           </span>
-          <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">mm / 24h</span>
+          <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">mm</span>
         </div>
         <div className="text-[11px] text-[#C51D34] dark:text-[#FF4D6D] font-semibold truncate flex items-center justify-between mt-1">
           <span className="truncate">{lang === "np" ? peakDistrict?.nepaliName : peakDistrict?.districtName}</span>
@@ -85,7 +85,7 @@ export default function NationalSituationBar({
         </div>
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-blue-700 dark:text-cyan-300 tabular-nums">
-            {dhmRivers.length || 5}
+            {dhmRivers.length}
           </span>
           <span className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">{lang === "np" ? "सेन्सर" : "Gauges"}</span>
         </div>
@@ -99,21 +99,24 @@ export default function NationalSituationBar({
         </div>
       </div>
 
-      {/* KPI 4: Bay of Bengal Proximity */}
+      {/* KPI 4: Active NDRRMA alerts */}
       <div className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
         <div className="flex items-center justify-between text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mb-1">
-          <span className="font-semibold truncate">{t.kpiStormDistance}</span>
-          <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <span className="font-semibold truncate">{lang === "np" ? "सक्रिय NDRRMA पूर्वसूचना" : "Active NDRRMA Alerts"}</span>
+          <ShieldAlert className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" />
         </div>
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">
-            ~{telemetry.distanceToNepalBorderKm}
+            {ndrrmaAlerts.length}
           </span>
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">km</span>
+          <span className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">
+            {lang === "np" ? "सूचना" : "Alerts"}
+          </span>
         </div>
-        <div className="text-[10px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1 flex items-center justify-between truncate">
-          <span className="truncate">{telemetry.systemType.split(" (")[0]}</span>
-          <span className="text-blue-600 dark:text-blue-300 text-[10px] hidden sm:inline">{t.inflowActive}</span>
+        <div className="text-[10px] sm:text-[11px] text-amber-600 dark:text-amber-400 font-semibold mt-1 truncate">
+          {ndrrmaAlerts.filter((a) => a.referenceType === "river").length} {lang === "np" ? "बाढी" : "Flood"}
+          {" • "}
+          {ndrrmaAlerts.filter((a) => a.referenceType === "rain").length} {lang === "np" ? "भारी वर्षा" : "Heavy rain"}
         </div>
       </div>
     </div>

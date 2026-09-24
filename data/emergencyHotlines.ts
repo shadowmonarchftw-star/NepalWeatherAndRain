@@ -54,8 +54,6 @@ export interface HighwayVulnerability {
   highwayName: string;
   nepaliName: string;
   keyChokepoints: string[];
-  status: "Normal" | "High Alert / One-way" | "High Landslide Risk" | "Blocked / Danger";
-  currentRiskSummary: string;
 }
 
 export const HIGHWAY_ADVISORIES: HighwayVulnerability[] = [
@@ -63,28 +61,20 @@ export const HIGHWAY_ADVISORIES: HighwayVulnerability[] = [
     highwayName: "Prithvi Highway (Kathmandu - Pokhara)",
     nepaliName: "पृथ्वी राजमार्ग",
     keyChokepoints: ["Malekhu", "Jogimara", "Mugling", "Kurintar", "Dumre"],
-    status: "High Landslide Risk",
-    currentRiskSummary: "Active debris slide risk near Malekhu and Jogimara due to continuous orographic rains in mid-hills.",
   },
   {
     highwayName: "Narayanghat - Mugling Highway",
     nepaliName: "नारायणगढ - मुग्लिन सडक खण्ड",
     keyChokepoints: ["Simaltal", "17 Kilo", "Topekhola", "Jalbire"],
-    status: "High Alert / One-way",
-    currentRiskSummary: "Steep cut slopes prone to sudden rockfalls and mudslides during heavy downpours. Night travel discouraged.",
   },
   {
     highwayName: "BP Highway (Dhulikhel - Sindhuli - Bardibas)",
     nepaliName: "बीपी राजमार्ग",
     keyChokepoints: ["Roshi River Corridor", "Nepalthok", "Khurkot", "Bhimeshwar"],
-    status: "High Landslide Risk",
-    currentRiskSummary: "Roshi River erosion risk along riverbanks. Extreme caution urged during intense rainfall.",
   },
   {
     highwayName: "Tribhuvan Highway (Naubise - Daman - Hetauda)",
     nepaliName: "त्रिभुवन राजपथ",
     keyChokepoints: ["Tistung", "Palung", "Daman Pass"],
-    status: "Normal",
-    currentRiskSummary: "Dense fog and slippery turns; generally passable with low speeds.",
   }
 ];

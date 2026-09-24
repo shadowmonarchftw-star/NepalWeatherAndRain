@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Nepal Weather & Rain Tracker | नेपाल मौसम तथा बाढी अनुगमन प्रणाली",
   description:
-    "Real-time precipitation, flood alerts, and Bay of Bengal monsoon depression tracking across all 7 provinces and 77 districts of Nepal. Supported by DHM Nepal, Open-Meteo & INSAT-3D satellite telemetry.",
+    "Live DHM river gauges, NDRRMA disaster alerts, rainfall forecasts and INSAT-3D satellite imagery for all 7 provinces and 77 districts of Nepal.",
   keywords: [
     "Nepal Weather",
     "Nepal Rain Forecast",

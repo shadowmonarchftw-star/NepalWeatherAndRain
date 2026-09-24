@@ -14,8 +14,8 @@ export const TRANSLATIONS = {
     dhmActive: "DHM Hotline 1155 Active",
 
     // Situation Bar
-    kpiPeakRain: "Peak 24h Rain",
-    kpiHighAlertDistricts: "Districts on Alert",
+    kpiPeakRain: "Peak Forecast Rain (Today)",
+    kpiHighAlertDistricts: "Districts at Forecast Risk",
     kpiRiverStatus: "DHM River Watch",
     kpiStormDistance: "Bay System Proximity",
     inflowActive: "Inflow Active",
@@ -79,7 +79,6 @@ export const TRANSLATIONS = {
     waterLevel: "WL (Current)",
     warningLevel: "WR (Warning)",
     dangerLevel: "DL (Danger)",
-    capacityToWarning: "Capacity to Warning:",
     sensorSource: "Source: DHM Real-Time Sensor",
     liveHydrologyFeed: "Live Hydrology Feed",
 
@@ -87,7 +86,7 @@ export const TRANSLATIONS = {
     ndrrmaTitle: "NDRRMA BIPAD Portal Live Alerts",
     ndrrmaGovNepal: "National Disaster Risk Reduction & Management Authority (NDRRMA)",
     ndrrmaConnected: "Live NDRRMA BIPAD Connected",
-    ndrrmaSub: "Real-time flash flood, landslide and cloudburst early warnings verified by NDRRMA BIPAD portal.",
+    ndrrmaSub: "Currently active flood, heavy-rain, road and pollution alerts published on the NDRRMA BIPAD portal.",
     ndrrmaType: "Alert Category",
     ndrrmaStarted: "Issued On",
     ndrrmaHouseholds: "Affected Households",
@@ -114,7 +113,7 @@ export const TRANSLATIONS = {
     pressure: "Pressure",
     elevation: "Elevation",
     sevenDayTrend: "7-Day Synoptic Trend",
-    dhmAlert: "DHM Alert:",
+    dhmAlert: "Forecast Risk:",
 
     // Footer
     nepalTrackerFooter: "Nepal Weather & Rain Tracker",
@@ -129,7 +128,7 @@ export const TRANSLATIONS = {
     autoSyncEvery5Min: "Auto-synced every 5 mins",
     nextSyncIn: "Next auto-sync in",
     refreshNowBtn: "Refresh Now",
-    publicDataNotice: "All data feeds are 100% open, verified and synchronized directly from DHM Nepal, NDRRMA BIPAD, ISRO INSAT-3D, and Open-Meteo.",
+    publicDataNotice: "All data feeds are 100% open, sourced from DHM Nepal (via NDRRMA BIPAD), IMD INSAT-3D, RainViewer and Open-Meteo. District risk levels are forecast estimates, not official DHM warnings.",
     justNow: "Just now",
     minsAgo: "min ago",
     secondsAgo: "sec ago",
@@ -147,7 +146,7 @@ export const TRANSLATIONS = {
     dhmActive: "बाढी सूचना ११५५ सक्रिय",
 
     // Situation Bar
-    kpiPeakRain: "अधिकतम २४ घण्टे वर्षा",
+    kpiPeakRain: "आजको अधिकतम पूर्वानुमानित वर्षा",
     kpiHighAlertDistricts: "जोखिममा रहेका जिल्ला",
     kpiRiverStatus: "नदी बहाव पूर्वसूचना",
     kpiStormDistance: "मौसमी प्रणालीको दुरी",
@@ -212,7 +211,6 @@ export const TRANSLATIONS = {
     waterLevel: "हालको जलसतह (WL)",
     warningLevel: "चेतावनी तह (WR)",
     dangerLevel: "खतरा तह (DL)",
-    capacityToWarning: "चेतावनी तहको अनुपात:",
     sensorSource: "स्रोत: DHM स्वचालित जलसतह सेन्सर",
     liveHydrologyFeed: "प्रत्यक्ष जलविज्ञान फिड",
 
@@ -247,7 +245,7 @@ export const TRANSLATIONS = {
     pressure: "वायुमण्डलीय चाप",
     elevation: "उचाइ",
     sevenDayTrend: "७ दिने मौसमी प्रक्षेपण",
-    dhmAlert: "DHM चेतावनी तह:",
+    dhmAlert: "पूर्वानुमान जोखिम:",
 
     // Footer
     nepalTrackerFooter: "नेपाल मौसम तथा वर्षा ट्रयाकर",

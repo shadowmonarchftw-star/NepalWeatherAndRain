@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Clock, PhoneCall, RefreshCw, Waves, ShieldAlert, Globe, Sun, Moon } from "lucide-react";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import { NDRRMAAlert } from "@/lib/types";
 
 interface HeaderProps {
   lang: Language;
@@ -12,6 +13,8 @@ interface HeaderProps {
   onOpenEmergency: () => void;
   onRefreshData: () => void;
   isRefreshing?: boolean;
+  latestAlert?: NDRRMAAlert;
+  activeAlertCount?: number;
 }
 
 export default function Header({
@@ -22,6 +25,8 @@ export default function Header({
   onOpenEmergency,
   onRefreshData,
   isRefreshing = false,
+  latestAlert,
+  activeAlertCount = 0,
 }: HeaderProps) {
   const [nepalTime, setNepalTime] = useState<string>("");
   const t = TRANSLATIONS[lang];
@@ -164,30 +169,31 @@ export default function Header({
           </div>
         </div>
 
-        {/* Live Bay of Bengal Alert Ribbon */}
-        <div className="mt-2.5 py-1.5 px-2.5 sm:px-3 rounded-xl bg-slate-100 dark:bg-[#0F172A] border-l-4 border-[#C51D34] border-t border-r border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 gap-2 transition-colors">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-[#C51D34] animate-pulse flex-shrink-0" />
-            <span className="font-bold text-[#C51D34] dark:text-[#FF4D6D] uppercase tracking-wide text-[11px] sm:text-xs flex-shrink-0">
-              {t.bayAlertTitle}
-            </span>
-            <span className="text-slate-800 dark:text-slate-300 font-medium text-[11px] sm:text-xs truncate">
-              {t.bayAlertDesc}
-            </span>
+        {/* Latest active NDRRMA alert (hidden when none are active) */}
+        {latestAlert && (
+          <div className="mt-2.5 py-1.5 px-2.5 sm:px-3 rounded-xl bg-slate-100 dark:bg-[#0F172A] border-l-4 border-[#C51D34] border-t border-r border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 gap-2 transition-colors">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-[#C51D34] animate-pulse flex-shrink-0" />
+              <span className="font-bold text-[#C51D34] dark:text-[#FF4D6D] uppercase tracking-wide text-[11px] sm:text-xs flex-shrink-0">
+                {lang === "np" ? "NDRRMA पूर्वसूचना:" : "NDRRMA Alert:"}
+              </span>
+              <span className="text-slate-800 dark:text-slate-300 font-medium text-[11px] sm:text-xs truncate">
+                {lang === "np" && latestAlert.titleNe ? latestAlert.titleNe : latestAlert.title}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0">
+              <span className="flex items-center gap-1 text-blue-700 dark:text-cyan-400 font-medium">
+                <Waves className="w-3 h-3" />
+                {activeAlertCount} {lang === "np" ? "सक्रिय" : "active"}
+              </span>
+              <span className="hidden md:inline text-slate-300 dark:text-slate-700">|</span>
+              <span className="hidden md:flex items-center gap-1 text-amber-700 dark:text-amber-400">
+                <ShieldAlert className="w-3 h-3" />
+                {t.dhmActive}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0">
-            <span className="flex items-center gap-1 text-blue-700 dark:text-cyan-400 font-medium">
-              <Waves className="w-3 h-3" />
-              <span className="hidden sm:inline">{t.koshiBagmatiAlert}</span>
-              <span className="sm:hidden">कोशी/बागमती</span>
-            </span>
-            <span className="hidden md:inline text-slate-300 dark:text-slate-700">|</span>
-            <span className="hidden md:flex items-center gap-1 text-amber-700 dark:text-amber-400">
-              <ShieldAlert className="w-3 h-3" />
-              {t.dhmActive}
-            </span>
-          </div>
-        </div>
+        )}
       </div>
     </header>
   );

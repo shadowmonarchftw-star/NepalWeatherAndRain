@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { DistrictWeatherSummary, BayOfBengalTelemetry, NDRRMAAlert } from "@/lib/types";
+import { DistrictWeatherSummary, NDRRMAAlert } from "@/lib/types";
 import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
@@ -14,7 +14,6 @@ interface NepalWeatherMapProps {
   districtsData: DistrictWeatherSummary[];
   dhmRivers?: DHMRiverStation[];
   ndrrmaAlerts?: NDRRMAAlert[];
-  telemetry: BayOfBengalTelemetry;
   activeLayer: MapLayerType;
   timeWindow: ForecastTimeWindow;
   basemap: BasemapType;
@@ -55,7 +54,7 @@ const DHM_DOPPLER_RADARS = [
     lat: 26.9667,
     lon: 86.5833,
     radiusM: 200000,
-    description: "Primary eastern early-warning radar tracking Bay of Bengal storm ingress.",
+    description: "Monitors Eastern Nepal, Koshi basin & eastern Terai.",
   },
 ];
 
@@ -90,7 +89,6 @@ export default function NepalWeatherMap({
   districtsData,
   dhmRivers = [],
   ndrrmaAlerts = [],
-  telemetry,
   activeLayer,
   timeWindow,
   basemap,
@@ -109,7 +107,6 @@ export default function NepalWeatherMap({
   const radarLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const riversLayerRef = useRef<L.LayerGroup | null>(null);
-  const stormLayerRef = useRef<L.LayerGroup | null>(null);
   const dhmRadarLayerRef = useRef<L.LayerGroup | null>(null);
   const ndrrmaLayerRef = useRef<L.LayerGroup | null>(null);
   const borderLayerRef = useRef<L.LayerGroup | null>(null);
@@ -157,7 +154,6 @@ export default function NepalWeatherMap({
     borderLayerRef.current = L.layerGroup().addTo(map);
     markersLayerRef.current = L.layerGroup().addTo(map);
     riversLayerRef.current = L.layerGroup().addTo(map);
-    stormLayerRef.current = L.layerGroup().addTo(map);
     dhmRadarLayerRef.current = L.layerGroup().addTo(map);
     ndrrmaLayerRef.current = L.layerGroup().addTo(map);
 
@@ -284,62 +280,6 @@ export default function NepalWeatherMap({
     }
   }, [activeLayer, lang, theme]);
 
-  // Render Bay of Bengal storm trajectory
-  useEffect(() => {
-    if (!stormLayerRef.current) return;
-    const stormGroup = stormLayerRef.current;
-    stormGroup.clearLayers();
-
-    const stormIcon = L.divIcon({
-      className: "custom-storm-marker",
-      html: `
-        <div class="relative flex items-center justify-center w-9 h-9 -ml-4.5 -mt-4.5">
-          <div class="absolute inset-0 rounded-full bg-[#C51D34] opacity-60 animate-ping"></div>
-          <div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-[#C51D34] border border-white text-white font-bold text-xs shadow-lg">
-            🌀
-          </div>
-        </div>
-      `,
-    });
-
-    const stormMarker = L.marker([telemetry.coordinates.lat, telemetry.coordinates.lon], {
-      icon: stormIcon,
-    });
-
-    stormMarker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px; color: ${textPrimary}; min-width: 190px;">
-        <div style="font-weight: 800; color: #dc2626; margin-bottom: 4px; text-transform: uppercase; font-size: 13px;">
-          🌀 Bay of Bengal ${telemetry.systemType}
-        </div>
-        <div style="color: ${textSecondary}; margin-bottom: 2px;"><strong style="color: ${textPrimary};">Coordinates:</strong> ${telemetry.coordinates.lat}°N, ${telemetry.coordinates.lon}°E</div>
-        <div style="color: ${textSecondary}; margin-bottom: 2px;"><strong style="color: ${textPrimary};">Central Pressure:</strong> ${telemetry.centralPressureHpa} hPa</div>
-        <div style="color: ${textSecondary}; margin-bottom: 2px;"><strong style="color: ${textPrimary};">Max Winds:</strong> ${telemetry.maxSustainedWindsKmh} km/h</div>
-        <div style="margin-top: 6px; padding: 4px 6px; background: ${isDark ? "#003893" : "#fee2e2"}; color: ${isDark ? "#ffffff" : "#991b1b"}; border: 1px solid ${isDark ? "#1e427b" : "#fca5a5"}; border-radius: 6px; font-weight: 700; text-align: center;">
-          Distance to Nepal: ~${telemetry.distanceToNepalBorderKm} km
-        </div>
-      </div>
-    `);
-
-    stormGroup.addLayer(stormMarker);
-
-    const trajectoryLine = L.polyline(
-      [
-        [telemetry.coordinates.lat, telemetry.coordinates.lon],
-        [22.5, 88.0],
-        [24.8, 87.5],
-        [26.4525, 87.2718],
-        [27.7172, 85.3240],
-      ],
-      {
-        color: "#C51D34",
-        weight: 3,
-        dashArray: "6, 8",
-        opacity: 0.85,
-      }
-    );
-    stormGroup.addLayer(trajectoryLine);
-  }, [telemetry]);
-
   // Render Rivers & Live DHM River Gauges
   useEffect(() => {
     if (!riversLayerRef.current) return;
@@ -446,17 +386,17 @@ export default function NepalWeatherMap({
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px;">
               <span style="color: ${textSecondary};">${lang === "np" ? "चेतावनी तह (WR):" : "Warning WR:"}</span>
-              <span style="color: ${isDark ? "#fcd34d" : "#b45309"}; font-weight: 700;">${station.warningLevelM} m</span>
+              <span style="color: ${isDark ? "#fcd34d" : "#b45309"}; font-weight: 700;">${station.warningLevelM !== null ? `${station.warningLevelM} m` : "—"}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
               <span style="color: ${textSecondary};">${lang === "np" ? "खतरा तह (DL):" : "Danger DL:"}</span>
-              <span style="color: #dc2626; font-weight: 700;">${station.dangerLevelM} m</span>
+              <span style="color: #dc2626; font-weight: 700;">${station.dangerLevelM !== null ? `${station.dangerLevelM} m` : "—"}</span>
             </div>
             <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeText}; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin-bottom: 4px;">
               DHM: ${station.status.toUpperCase()}
             </div>
             <div style="font-size: 9px; color: ${textMuted}; text-align: right;">
-              Source: DHM / hydrology.gov.np
+              ${new Date(station.waterLevelOn).toLocaleString(lang === "np" ? "ne-NP" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })} · Source: DHM / hydrology.gov.np
             </div>
           </div>
         `);
@@ -662,7 +602,7 @@ export default function NepalWeatherMap({
         >
           <div className="font-bold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
             <span>{lang === "np" ? "वर्षा जोखिम" : "Rainfall Risk"} ({timeWindow})</span>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">DHM</span>
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Open-Meteo</span>
           </div>
           <div className="space-y-1.5 font-medium text-[11px]">
             <div className="flex items-center gap-2">
@@ -728,12 +668,6 @@ export default function NepalWeatherMap({
         )}
       </div>
 
-      {/* Trajectory pill */}
-      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white backdrop-blur-md shadow-xs">
-        <span className="w-2 h-2 rounded-full bg-[#C51D34] animate-pulse" />
-        <span className="font-bold text-[#C51D34] dark:text-[#FF4D6D]">{lang === "np" ? "प्रवाह दिशा:" : "Trajectory:"}</span>
-        <span className="text-slate-600 dark:text-slate-300">Bay of Bengal &rarr; Koshi & Bagmati</span>
-      </div>
     </div>
   );
 }

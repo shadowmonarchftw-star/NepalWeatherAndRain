@@ -57,23 +57,6 @@ export interface DistrictWeatherSummary {
   primaryThreat: string;
 }
 
-export interface BayOfBengalTelemetry {
-  systemType: "Low Pressure Area (LPA)" | "Well Marked Low (WML)" | "Depression (D)" | "Deep Depression (DD)" | "Cyclonic Storm";
-  centralPressureHpa: number;
-  maxSustainedWindsKmh: number;
-  coordinates: {
-    lat: number;
-    lon: number;
-  };
-  movementDirection: "North-Northwest" | "Northward" | "North-Northeast";
-  speedKmh: number;
-  distanceToNepalBorderKm: number;
-  estimatedArrivalHours: number;
-  impactZone: string;
-  synopticSummary: string;
-  moistureInflowIntensity: "Severe" | "High" | "Moderate";
-}
-
 export interface RadarFrame {
   time: number;
   path: string;

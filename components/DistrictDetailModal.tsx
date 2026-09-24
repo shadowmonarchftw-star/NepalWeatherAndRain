@@ -55,7 +55,7 @@ export default function DistrictDetailModal({
       rainRate: rain,
       cumulative: cumulativeRain,
       prob: district.hourly.precipitationProbability[idx] || 0,
-      temp: district.hourly.temperature[idx] || 20,
+      temp: district.hourly.temperature[idx],
     };
   });
 
@@ -109,7 +109,7 @@ export default function DistrictDetailModal({
                   : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
               }`}
             >
-              DHM: {district.alertLevel}
+              {lang === "np" ? "पूर्वानुमान जोखिम" : "Forecast risk"}: {district.alertLevel}
             </span>
 
             <button
@@ -291,8 +291,10 @@ export default function DistrictDetailModal({
             <div className="flex sm:grid sm:grid-cols-4 lg:grid-cols-7 gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
               {district.daily.time.slice(0, 7).map((dTime, idx) => {
                 const rainSum = district.daily.precipitationSum[idx] ?? 0;
-                const tempMax = Math.round(district.daily.temperatureMax[idx] ?? 24);
-                const tempMin = Math.round(district.daily.temperatureMin[idx] ?? 18);
+                const rawMax = district.daily.temperatureMax[idx];
+                const rawMin = district.daily.temperatureMin[idx];
+                const tempMax = rawMax != null ? Math.round(rawMax) : "–";
+                const tempMin = rawMin != null ? Math.round(rawMin) : "–";
                 const prob = district.daily.precipitationProbabilityMax[idx] ?? 0;
 
                 return (

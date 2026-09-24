@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import NationalSituationBar from "@/components/NationalSituationBar";
 import ProvinceQuickJumper from "@/components/ProvinceQuickJumper";
-import BayOfBengalTracker from "@/components/BayOfBengalTracker";
 import MapControls, { MapLayerType, ForecastTimeWindow, BasemapType } from "@/components/MapControls";
 import FloodHazardIndex from "@/components/FloodHazardIndex";
 import DistrictSelector from "@/components/DistrictSelector";
@@ -13,9 +12,7 @@ import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
 import LiveSatelliteModal from "@/components/LiveSatelliteModal";
 import Footer from "@/components/Footer";
-import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
 import { DistrictWeatherSummary, RainViewerData, NDRRMAAlert } from "@/lib/types";
-import { generateSynopticFallbackForDistrict, getBayOfBengalTelemetry } from "@/lib/openMeteo";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language } from "@/lib/translations";
 
@@ -40,13 +37,6 @@ export default function Home() {
   // Language State: Defaults to Nepali (np) for local relevance, toggleable to English (en)
   const [lang, setLang] = useState<Language>("np");
 
-  // Telemetry & Districts
-  const telemetry = useMemo(() => getBayOfBengalTelemetry(), []);
-  const initialDistricts = useMemo(
-    () => NEPAL_DISTRICTS.map((d) => generateSynopticFallbackForDistrict(d)),
-    []
-  );
-
   // Sync theme with document element & localStorage
   useEffect(() => {
     const saved = localStorage.getItem("nepal_weather_theme");
@@ -68,7 +58,7 @@ export default function Home() {
     });
   };
 
-  const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>(initialDistricts);
+  const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>([]);
   const [dhmRivers, setDhmRivers] = useState<DHMRiverStation[]>([]);
   const [ndrrmaAlerts, setNdrrmaAlerts] = useState<NDRRMAAlert[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
@@ -103,7 +93,7 @@ export default function Home() {
           }
         }
       } catch (err) {
-        console.warn("Using offline synoptic cache", err);
+        console.warn("Open-Meteo district forecast unavailable", err);
       }
     }
 
@@ -119,9 +109,12 @@ export default function Home() {
         const res = await fetch("/api/dhm");
         if (res.ok) {
           const data = await res.json();
-          if (data.rivers?.length) {
+          if (Array.isArray(data.rivers)) {
             setDhmRivers(data.rivers);
           }
+        } else {
+          // Feed down: show nothing rather than readings of unknown age
+          setDhmRivers([]);
         }
       } catch (err) {
         console.warn("Using cached DHM station telemetry", err);
@@ -143,6 +136,8 @@ export default function Home() {
           if (Array.isArray(data.alerts)) {
             setNdrrmaAlerts(data.alerts);
           }
+        } else {
+          setNdrrmaAlerts([]);
         }
       } catch (err) {
         console.warn("Using cached NDRRMA alerts", err);
@@ -232,12 +227,16 @@ export default function Home() {
 
       if (dhmRes.status === "fulfilled" && dhmRes.value.ok) {
         const dData = await dhmRes.value.json();
-        if (dData.rivers?.length) setDhmRivers(dData.rivers);
+        if (Array.isArray(dData.rivers)) setDhmRivers(dData.rivers);
+      } else if (dhmRes.status === "fulfilled") {
+        setDhmRivers([]);
       }
 
       if (ndrrmaRes.status === "fulfilled" && ndrrmaRes.value.ok) {
         const nData = await ndrrmaRes.value.json();
         if (Array.isArray(nData.alerts)) setNdrrmaAlerts(nData.alerts);
+      } else if (ndrrmaRes.status === "fulfilled") {
+        setNdrrmaAlerts([]);
       }
 
       setLastRefreshedAt(new Date());
@@ -278,6 +277,8 @@ export default function Home() {
         onOpenEmergency={() => setIsEmergencyOpen(true)}
         onRefreshData={refreshWeatherData}
         isRefreshing={isRefreshing}
+        latestAlert={ndrrmaAlerts[0]}
+        activeAlertCount={ndrrmaAlerts.length}
       />
 
       {/* Main Content Dashboard */}
@@ -287,21 +288,12 @@ export default function Home() {
           <NationalSituationBar
             districts={districtsData}
             dhmRivers={dhmRivers}
-            telemetry={telemetry}
+            ndrrmaAlerts={ndrrmaAlerts}
             lang={lang}
             onFocusPeakDistrict={(dId) => {
               const d = districtsData.find((x) => x.districtId === dId);
               if (d) setMapCenterFocus([d.lat, d.lon]);
             }}
-          />
-        </section>
-
-        {/* 3. Bay of Bengal Synoptic Depression Tracker */}
-        <section>
-          <BayOfBengalTracker
-            telemetry={telemetry}
-            onFocusEasternNepal={() => setMapCenterFocus([26.9, 87.4])}
-            lang={lang}
           />
         </section>
 
@@ -338,7 +330,6 @@ export default function Home() {
             districtsData={districtsData}
             dhmRivers={dhmRivers}
             ndrrmaAlerts={ndrrmaAlerts}
-            telemetry={telemetry}
             activeLayer={activeLayer}
             timeWindow={timeWindow}
             basemap={basemap}
@@ -359,12 +350,6 @@ export default function Home() {
             dhmRivers={dhmRivers}
             ndrrmaAlerts={ndrrmaAlerts}
             onSelectAlertFocus={(coords) => setMapCenterFocus(coords)}
-            onSelectBasinFocus={(basinId) => {
-              if (basinId.includes("koshi")) setMapCenterFocus([27.0, 87.2]);
-              else if (basinId.includes("bagmati")) setMapCenterFocus([27.7, 85.3]);
-              else if (basinId.includes("gandaki")) setMapCenterFocus([28.1, 84.2]);
-              else if (basinId.includes("karnali")) setMapCenterFocus([29.1, 81.8]);
-            }}
             lang={lang}
           />
         </section>

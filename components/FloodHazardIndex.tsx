@@ -3,18 +3,14 @@
 import React, { useState, useMemo } from "react";
 import {
   Waves,
-  TrendingUp,
   Car,
   Activity,
   ShieldAlert,
-  AlertTriangle,
   Users,
   MapPin,
   Search,
   ChevronDown,
-  ChevronUp,
 } from "lucide-react";
-import { INITIAL_RIVER_BASINS } from "@/data/nepalProvinces";
 import { HIGHWAY_ADVISORIES } from "@/data/emergencyHotlines";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { NDRRMAAlert } from "@/lib/types";
@@ -23,7 +19,6 @@ import { Language, TRANSLATIONS } from "@/lib/translations";
 interface FloodHazardIndexProps {
   dhmRivers?: DHMRiverStation[];
   ndrrmaAlerts?: NDRRMAAlert[];
-  onSelectBasinFocus?: (basinId: string) => void;
   onSelectAlertFocus?: (coords: [number, number]) => void;
   lang?: Language;
 }
@@ -31,7 +26,6 @@ interface FloodHazardIndexProps {
 export default function FloodHazardIndex({
   dhmRivers = [],
   ndrrmaAlerts = [],
-  onSelectBasinFocus,
   onSelectAlertFocus,
   lang = "en",
 }: FloodHazardIndexProps) {
@@ -44,23 +38,47 @@ export default function FloodHazardIndex({
 
   // Filter and prioritize DHM river stations
   const filteredGauges = useMemo(() => {
+    // Stale readings and sensor faults are already excluded server-side in /api/dhm
     let list = [...dhmRivers];
+
     if (gaugeFilter === "elevated") {
-      list = list.filter((r) => r.status === "Danger" || r.status === "Warning" || r.percentOfWarning >= 70);
+      list = list.filter((r) => r.status === "Danger" || r.status === "Warning");
     }
     if (gaugeSearch.trim()) {
       const q = gaugeSearch.toLowerCase();
       list = list.filter((r) => r.name.toLowerCase().includes(q) || r.river.toLowerCase().includes(q));
     }
-    // Sort: Danger first, Warning second, then by warning percentage descending
-    return list.sort((a, b) => {
-      const score = (s: DHMRiverStation) =>
-        s.status === "Danger" ? 1000 : s.status === "Warning" ? 500 : s.percentOfWarning;
-      return score(b) - score(a);
-    });
+    // Sort by DHM status: Danger first, then Warning, then Normal
+    const rank = (s: DHMRiverStation) => (s.status === "Danger" ? 2 : s.status === "Warning" ? 1 : 0);
+    return list.sort((a, b) => rank(b) - rank(a));
   }, [dhmRivers, gaugeFilter, gaugeSearch]);
 
   const displayedGauges = filteredGauges.slice(0, visibleGaugeCount);
+
+  // Per-basin roll-up of live DHM gauges (basin names as published by DHM/BIPAD)
+  const basinSummaries = useMemo(() => {
+    const groups = new Map<string, DHMRiverStation[]>();
+    for (const r of dhmRivers) {
+      const key = r.basin || (lang === "np" ? "अन्य" : "Other");
+      groups.set(key, [...(groups.get(key) || []), r]);
+    }
+    return [...groups.entries()]
+      .map(([basin, stations]) => ({
+        basin,
+        stations,
+        danger: stations.filter((s) => s.status === "Danger"),
+        warning: stations.filter((s) => s.status === "Warning"),
+        rising: stations.filter((s) => s.steady === "RISING").length,
+      }))
+      .sort(
+        (a, b) =>
+          b.danger.length - a.danger.length ||
+          b.warning.length - a.warning.length ||
+          b.stations.length - a.stations.length
+      );
+  }, [dhmRivers, lang]);
+
+  const roadAlerts = ndrrmaAlerts.filter((a) => a.referenceType === "road");
 
   return (
     <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 shadow-sm dark:shadow-lg text-slate-900 dark:text-white transition-colors">
@@ -97,10 +115,10 @@ export default function FloodHazardIndex({
             }`}
           >
             <Activity className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-300" />
-            <span>{t.tabDhmGauges} ({dhmRivers.length || 5})</span>
+            <span>{t.tabDhmGauges} ({filteredGauges.length})</span>
           </button>
 
-          {/* Tab 2: NDRRMA Live Alerts */}
+          {/* Tab 3: NDRRMA Live Alerts */}
           <button
             onClick={() => setActiveTab("ndrrma_alerts")}
             className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap touch-manipulation ${
@@ -110,7 +128,7 @@ export default function FloodHazardIndex({
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-            <span>{t.tabNdrrmaAlerts} ({ndrrmaAlerts.length || 5})</span>
+            <span>{t.tabNdrrmaAlerts} ({ndrrmaAlerts.length})</span>
             {ndrrmaAlerts.length > 0 && (
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse ml-0.5" />
             )}
@@ -126,7 +144,7 @@ export default function FloodHazardIndex({
             }`}
           >
             <Waves className="w-3.5 h-3.5" />
-            <span>{t.tabBasinModels} ({INITIAL_RIVER_BASINS.length})</span>
+            <span>{t.tabBasinModels} ({basinSummaries.length})</span>
           </button>
 
           {/* Tab 4: Highways */}
@@ -150,10 +168,17 @@ export default function FloodHazardIndex({
           {/* Status info bar */}
           <div className="p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-center justify-between flex-wrap gap-2">
             <span>{t.dhmGaugeSub}</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {t.liveDhmConnected}
-            </span>
+            {dhmRivers.length > 0 ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {t.liveDhmConnected}
+              </span>
+            ) : (
+              <span className="text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-slate-400" />
+                {lang === "np" ? "DHM फिड उपलब्ध छैन" : "DHM feed unavailable"}
+              </span>
+            )}
           </div>
 
           {/* Search & Filter Toolbar */}
@@ -204,11 +229,19 @@ export default function FloodHazardIndex({
                 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/40"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
 
-              const percent = Math.min(100, Math.round((station.waterLevelM / station.warningLevelM) * 100));
+              // Distance to DHM warning level in metres; valid for both local-gauge and sea-level datums
+              const marginM =
+                station.warningLevelM !== null ? Number((station.warningLevelM - station.waterLevelM).toFixed(2)) : null;
+              const readingTime = new Date(station.waterLevelOn).toLocaleString(lang === "np" ? "ne-NP" : "en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
 
               return (
                 <div
-                  key={station.name}
+                  key={station.id}
                   className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 flex flex-col justify-between"
                 >
                   <div>
@@ -233,35 +266,40 @@ export default function FloodHazardIndex({
                       <div>
                         <div className="text-[9px] sm:text-[10px] text-amber-600 dark:text-amber-400 font-semibold">{t.warningLevel}</div>
                         <div className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 mt-0.5 tabular-nums">
-                          {station.warningLevelM} <span className="text-[9px] font-normal text-slate-500 dark:text-slate-400">m</span>
+                          {station.warningLevelM ?? "—"} {station.warningLevelM !== null && <span className="text-[9px] font-normal text-slate-500 dark:text-slate-400">m</span>}
                         </div>
                       </div>
                       <div>
                         <div className="text-[9px] sm:text-[10px] text-red-600 dark:text-red-400 font-semibold">{t.dangerLevel}</div>
                         <div className="text-xs sm:text-sm font-bold text-red-600 dark:text-red-400 mt-0.5 tabular-nums">
-                          {station.dangerLevelM} <span className="text-[9px] font-normal text-slate-500 dark:text-slate-400">m</span>
+                          {station.dangerLevelM ?? "—"} {station.dangerLevelM !== null && <span className="text-[9px] font-normal text-slate-500 dark:text-slate-400">m</span>}
                         </div>
                       </div>
                     </div>
 
-                    {/* Gauge Capacity Meter */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-500 dark:text-slate-400">{t.capacityToWarning}</span>
-                        <span className="font-bold text-slate-900 dark:text-white tabular-nums">{percent}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isDanger
-                              ? "bg-[#C51D34]"
-                              : isWarning
-                              ? "bg-amber-500"
-                              : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
+                    {/* Margin to DHM warning level */}
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {lang === "np" ? "चेतावनी तहसम्मको दूरी:" : "Margin to warning:"}
+                      </span>
+                      <span
+                        className={`font-bold tabular-nums ${
+                          marginM !== null && marginM <= 0 ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"
+                        }`}
+                      >
+                        {marginM === null
+                          ? lang === "np" ? "DHM ले तोकेको छैन" : "Not set by DHM"
+                          : marginM > 0
+                          ? `${marginM} m ${lang === "np" ? "तल" : "below"}`
+                          : `${Math.abs(marginM)} m ${lang === "np" ? "माथि" : "above"}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] mt-1">
+                      <span className="text-slate-500 dark:text-slate-400">{lang === "np" ? "मापन समय:" : "Reading at:"}</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                        {readingTime}
+                        {station.steady ? ` · ${station.steady}` : ""}
+                      </span>
                     </div>
                   </div>
 
@@ -304,7 +342,7 @@ export default function FloodHazardIndex({
         </div>
       )}
 
-      {/* Tab 2: NDRRMA Live Alerts */}
+      {/* Tab 3: NDRRMA Live Alerts */}
       {activeTab === "ndrrma_alerts" && (
         <div className="mt-3.5 space-y-3">
           <div className="p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-center justify-between flex-wrap gap-2">
@@ -405,136 +443,162 @@ export default function FloodHazardIndex({
         </div>
       )}
 
-      {/* Tab 3: River Basin Models */}
+      {/* Tab: Basin roll-up of live DHM gauges */}
       {activeTab === "rivers" && (
-        <div className="mt-3.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {INITIAL_RIVER_BASINS.map((basin) => {
-            const isDanger = basin.alertLevel === "Danger";
-            const isWarning = basin.alertLevel === "Warning";
+        <div className="mt-3.5 space-y-3">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+            {lang === "np"
+              ? "जलाधार अनुसार DHM का प्रत्यक्ष नदी मापन स्टेसनहरूको सारांश (पछिल्लो २४ घण्टाभित्रको मापन मात्र)।"
+              : "Live DHM river gauges grouped by basin (only readings from the last 24 hours)."}
+          </div>
+          {basinSummaries.length === 0 ? (
+            <div className="p-8 text-center rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-sm">
+              {lang === "np" ? "DHM फिड उपलब्ध छैन" : "DHM feed unavailable"}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {basinSummaries.map((b) => {
+                const isDanger = b.danger.length > 0;
+                const isWarning = !isDanger && b.warning.length > 0;
+                const flagged = [...b.danger, ...b.warning];
 
-            const badgeBg = isDanger
-              ? "bg-[#C51D34] text-white animate-pulse"
-              : isWarning
-              ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/40"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
-
-            return (
-              <div
-                key={basin.id}
-                className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                return (
+                  <div
+                    key={b.basin}
+                    className={`p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border flex flex-col justify-between ${
+                      isDanger
+                        ? "border-[#C51D34]"
+                        : isWarning
+                        ? "border-amber-400"
+                        : "border-slate-200 dark:border-slate-800"
+                    }`}
+                  >
                     <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                        {lang === "np" ? basin.nepaliName : basin.name}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {lang === "np" ? basin.name : basin.nepaliName}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex-shrink-0 ${badgeBg}`}>
-                      {basin.alertLevel}
-                    </span>
-                  </div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white mb-2">{b.basin}</h4>
+                      <div className="grid grid-cols-4 gap-1.5 text-center p-2 rounded-lg bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800">
+                        <div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold">{lang === "np" ? "स्टेसन" : "Gauges"}</div>
+                          <div className="text-sm font-black tabular-nums">{b.stations.length}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-red-600 dark:text-red-400 font-semibold">{lang === "np" ? "खतरा" : "Danger"}</div>
+                          <div className="text-sm font-black tabular-nums text-red-600 dark:text-red-400">{b.danger.length}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-amber-600 dark:text-amber-400 font-semibold">{lang === "np" ? "चेतावनी" : "Warning"}</div>
+                          <div className="text-sm font-black tabular-nums text-amber-600 dark:text-amber-400">{b.warning.length}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold">{lang === "np" ? "बढ्दो" : "Rising"}</div>
+                          <div className="text-sm font-black tabular-nums">{b.rising}</div>
+                        </div>
+                      </div>
 
-                  <div className="my-2.5 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500 dark:text-slate-400">{lang === "np" ? "जोखिम अङ्क:" : "Hazard Score:"}</span>
-                      <span className="font-black text-slate-900 dark:text-white tabular-nums">
-                        {basin.floodRiskScore}/100
-                      </span>
+                      {flagged.length > 0 && (
+                        <div className="mt-2.5 space-y-1">
+                          {flagged.map((st) => (
+                            <button
+                              key={st.id}
+                              onClick={() => onSelectAlertFocus?.(st.coordinates)}
+                              className="w-full flex items-center justify-between gap-2 text-[11px] text-left hover:underline"
+                            >
+                              <span className="truncate text-slate-700 dark:text-slate-300">{st.name}</span>
+                              <span
+                                className={`font-bold tabular-nums flex-shrink-0 ${
+                                  st.status === "Danger" ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
+                                }`}
+                              >
+                                {st.waterLevelM} m
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          isDanger ? "bg-[#C51D34]" : isWarning ? "bg-amber-500" : "bg-blue-500"
-                        }`}
-                        style={{ width: `${basin.floodRiskScore}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] pt-1">
-                      <span className="text-slate-500 dark:text-slate-400">{lang === "np" ? "बहाव प्रवृत्ति:" : "Discharge Trend:"}</span>
-                      <span className="text-blue-700 dark:text-cyan-300 font-semibold flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-blue-600 dark:text-cyan-400" />
-                        {basin.estimatedDischargeTrend}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-[11px]">
-                    <span className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
-                      {lang === "np" ? "अनुगमन गरिएका सहायक नदीहरू:" : "Monitored Tributaries:"}
-                    </span>
-                    <div className="flex flex-wrap gap-1">
-                      {basin.monitoredRivers.map((r) => (
-                        <span key={r} className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]">
-                          {r}
-                        </span>
-                      ))}
+                    <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400">
+                      {t.sensorSource}
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tab 4: Highways */}
+      {/* Tab: Highways — live NDRRMA road alerts + static reference corridors */}
       {activeTab === "highways" && (
-        <div className="mt-3.5 grid grid-cols-1 md:grid-cols-2 gap-3">
-          {HIGHWAY_ADVISORIES.map((hwy) => {
-            const isSlideDanger = hwy.status === "High Landslide Risk" || hwy.status === "Blocked / Danger";
+        <div className="mt-3.5 space-y-3">
+          <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            {lang === "np" ? "सक्रिय सडक अवरोध सूचना (NDRRMA / सडक विभाग)" : "Active road alerts (NDRRMA / Department of Roads)"}
+          </h5>
+          {roadAlerts.length === 0 ? (
+            <div className="p-4 text-center rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs">
+              {lang === "np"
+                ? "हाल BIPAD पोर्टलमा कुनै सक्रिय सडक अवरोध सूचना छैन।"
+                : "No active road alerts on the BIPAD portal right now."}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {roadAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-red-300 dark:border-[#C51D34]/60"
+                >
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                    {lang === "np" && alert.titleNe ? alert.titleNe : alert.title}
+                  </h4>
+                  {alert.description && (
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{alert.description}</p>
+                  )}
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                    <span>
+                      {new Date(alert.startedOn).toLocaleString(lang === "np" ? "ne-NP" : "en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {onSelectAlertFocus && (
+                      <button
+                        onClick={() => onSelectAlertFocus([alert.lat, alert.lon])}
+                        className="font-bold text-amber-700 dark:text-amber-300 hover:underline"
+                      >
+                        {t.ndrrmaFocusMap}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-            return (
+          <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300 pt-2">
+            {lang === "np"
+              ? "सन्दर्भ: पहिरो-सम्भावित प्रमुख राजमार्ग खण्डहरू (प्रत्यक्ष स्थिति होइन)"
+              : "Reference: landslide-prone highway sections (not live status)"}
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {HIGHWAY_ADVISORIES.map((hwy) => (
               <div
                 key={hwy.highwayName}
-                className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 flex flex-col justify-between"
+                className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                        {lang === "np" ? hwy.nepaliName : hwy.highwayName}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {lang === "np" ? hwy.highwayName : hwy.nepaliName}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex-shrink-0 ${
-                        isSlideDanger
-                          ? "bg-red-100 dark:bg-[#C51D34]/20 text-red-700 dark:text-[#FF4D6D] border-red-300 dark:border-[#C51D34]"
-                          : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40"
-                      }`}
-                    >
-                      {hwy.status}
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                  {lang === "np" ? hwy.nepaliName : hwy.highwayName}
+                </h4>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {hwy.keyChokepoints.map((pt) => (
+                    <span key={pt} className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]">
+                      {pt}
                     </span>
-                  </div>
-
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed my-2">
-                    {hwy.currentRiskSummary}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-[11px]">
-                  <span className="text-amber-700 dark:text-amber-400 font-semibold block mb-1">
-                    {lang === "np" ? "मुख्य पहिरो सम्भावित बिन्दुहरू:" : "Critical Chokepoints:"}
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {hwy.keyChokepoints.map((pt) => (
-                      <span key={pt} className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px]">
-                        {pt}
-                      </span>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       )}
     </div>
