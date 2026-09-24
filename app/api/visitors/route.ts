@@ -11,7 +11,7 @@ declare global {
 
 const BASELINE_VISITORS = 1;
 
-if (!globalThis.__nepal_weather_visitors) {
+if (!globalThis.__nepal_weather_visitors || globalThis.__nepal_weather_visitors.total > 1000) {
   globalThis.__nepal_weather_visitors = {
     total: BASELINE_VISITORS,
     lastIncrement: Date.now(),
