@@ -8,7 +8,7 @@ import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 import { NEPAL_RIVER_SYSTEMS } from "@/data/nepalRivers";
-import { Maximize2, Minimize2, Crosshair, Satellite } from "lucide-react";
+import { Maximize2, Minimize2, Crosshair, Satellite, ChevronUp, ChevronDown } from "lucide-react";
 
 interface NepalWeatherMapProps {
   districtsData: DistrictWeatherSummary[];
@@ -115,6 +115,7 @@ export default function NepalWeatherMap({
   const borderLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
   const t = TRANSLATIONS[lang];
 
   const isDark = theme === "dark";
@@ -128,9 +129,10 @@ export default function NepalWeatherMap({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
     const map = L.map(mapContainerRef.current, {
-      center: [28.2, 84.4],
-      zoom: 7,
+      center: isMobile ? [28.1, 84.1] : [28.2, 84.4],
+      zoom: isMobile ? 6 : 7,
       minZoom: 5,
       maxZoom: 13,
       zoomControl: false,
@@ -626,51 +628,69 @@ export default function NepalWeatherMap({
   // Re-center on Nepal
   const handleRecenter = () => {
     if (mapRef.current) {
-      mapRef.current.flyTo([28.2, 84.4], 7, { duration: 1.0 });
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+      mapRef.current.flyTo(isMobile ? [28.1, 84.1] : [28.2, 84.4], isMobile ? 6 : 7, { duration: 1.0 });
     }
   };
 
   return (
     <div
       className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#080D16] shadow-sm dark:shadow-xl transition-all ${
-        isFullscreen ? "fixed inset-0 z-50 rounded-none h-screen" : "h-[470px] sm:h-[570px] lg:h-[640px]"
+        isFullscreen ? "fixed inset-0 z-50 rounded-none h-screen" : "h-[390px] sm:h-[530px] lg:h-[630px]"
       }`}
     >
       {/* Map Container */}
       <div ref={mapContainerRef} className="w-full h-full z-10" />
 
-      {/* Floating Map Legend */}
-      <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-md text-xs text-slate-800 dark:text-white max-w-[210px] transition-colors">
-        <div className="font-bold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
-          <span>{lang === "np" ? "वर्षा जोखिम" : "Rainfall Risk"} ({timeWindow})</span>
-          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">DHM</span>
-        </div>
-        <div className="space-y-1.5 font-medium text-[11px]">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#C51D34] border border-white flex-shrink-0 animate-pulse" />
-            <span>&gt; 100 mm ({lang === "np" ? "खतरा" : "Danger"})</span>
+      {/* Floating Map Legend (Collapsible on mobile) */}
+      <div className="absolute bottom-3 left-3 z-20">
+        {/* Mobile Toggle Pill */}
+        <button
+          onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+          className="sm:hidden px-2.5 py-1.5 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-800 dark:text-slate-100 shadow-md flex items-center gap-1.5 backdrop-blur-md active:scale-95 touch-manipulation"
+        >
+          <span className="w-2 h-2 rounded-full bg-[#C51D34] animate-pulse" />
+          <span>{lang === "np" ? "वर्षा संकेत" : "Rain Legend"}</span>
+          {isLegendExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Legend Content */}
+        <div
+          className={`${
+            isLegendExpanded ? "block mt-1.5" : "hidden"
+          } sm:block p-3 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-md text-xs text-slate-800 dark:text-white max-w-[210px] transition-colors`}
+        >
+          <div className="font-bold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
+            <span>{lang === "np" ? "वर्षा जोखिम" : "Rainfall Risk"} ({timeWindow})</span>
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">DHM</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] border border-white/50 flex-shrink-0" />
-            <span>50 - 100 mm ({lang === "np" ? "चेतावनी" : "Warning"})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#FACC15] border border-white/50 flex-shrink-0" />
-            <span>25 - 50 mm ({lang === "np" ? "सतर्कता" : "Watch"})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] border border-white/50 flex-shrink-0" />
-            <span>&lt; 25 mm ({lang === "np" ? "सामान्य" : "Normal"})</span>
+          <div className="space-y-1.5 font-medium text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#C51D34] border border-white flex-shrink-0 animate-pulse" />
+              <span>&gt; 100 mm ({lang === "np" ? "खतरा" : "Danger"})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] border border-white/50 flex-shrink-0" />
+              <span>50 - 100 mm ({lang === "np" ? "चेतावनी" : "Warning"})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FACC15] border border-white/50 flex-shrink-0" />
+              <span>25 - 50 mm ({lang === "np" ? "सतर्कता" : "Watch"})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] border border-white/50 flex-shrink-0" />
+              <span>&lt; 25 mm ({lang === "np" ? "सामान्य" : "Normal"})</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Floating Action Buttons (Top Right) */}
-      <div className="absolute top-4 right-14 z-20 flex items-center gap-2">
+      <div className="absolute top-3 right-12 sm:top-4 sm:right-14 z-20 flex items-center gap-1.5 sm:gap-2">
         {/* Recenter Button */}
         <button
           onClick={handleRecenter}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#0F172A] dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95"
+          className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#0F172A] dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95 touch-manipulation"
           title={t.recenterNepal}
         >
           <Crosshair className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
@@ -680,17 +700,27 @@ export default function NepalWeatherMap({
         {/* Fullscreen Toggle */}
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className="p-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#0F172A] dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95"
+          className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#0F172A] dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95 touch-manipulation flex items-center gap-1"
           title={isFullscreen ? t.exitFullscreen : t.fullscreen}
         >
-          {isFullscreen ? <Minimize2 className="w-4 h-4 text-blue-600 dark:text-cyan-400" /> : <Maximize2 className="w-4 h-4" />}
+          {isFullscreen ? (
+            <>
+              <Minimize2 className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+              <span className="hidden sm:inline text-xs">{t.exitFullscreen}</span>
+            </>
+          ) : (
+            <>
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-xs">{t.fullscreen}</span>
+            </>
+          )}
         </button>
 
         {/* INSAT-3D Satellite Launcher */}
         {onOpenSatelliteViewer && (
           <button
             onClick={onOpenSatelliteViewer}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] border border-white/20 text-xs font-bold text-white shadow-xs transition-all active:scale-95"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] border border-white/20 text-xs font-bold text-white shadow-xs transition-all active:scale-95 touch-manipulation"
           >
             <Satellite className="w-3.5 h-3.5" />
             <span>INSAT-3D</span>
@@ -699,7 +729,7 @@ export default function NepalWeatherMap({
       </div>
 
       {/* Trajectory pill */}
-      <div className="absolute top-4 left-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white backdrop-blur-md shadow-xs">
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white backdrop-blur-md shadow-xs">
         <span className="w-2 h-2 rounded-full bg-[#C51D34] animate-pulse" />
         <span className="font-bold text-[#C51D34] dark:text-[#FF4D6D]">{lang === "np" ? "प्रवाह दिशा:" : "Trajectory:"}</span>
         <span className="text-slate-600 dark:text-slate-300">Bay of Bengal &rarr; Koshi & Bagmati</span>

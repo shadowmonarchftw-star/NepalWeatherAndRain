@@ -52,33 +52,33 @@ export default function DistrictSelector({
   }, [districts, activeProvinceId, alertFilter, searchTerm]);
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-5 shadow-sm dark:shadow-lg text-slate-900 dark:text-white transition-colors">
+    <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 shadow-sm dark:shadow-lg text-slate-900 dark:text-white transition-colors">
       {/* Title & Search bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#C51D34]" />
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#C51D34]" />
             <span>{t.explorerTitle}</span>
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
             {t.explorerSubtitle}
           </p>
         </div>
 
         {/* Search input */}
         <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
           <input
             type="text"
             placeholder={t.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-[#003893]"
+            className="w-full pl-8 pr-7 py-1.5 sm:py-2 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-[#003893]"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              className="absolute right-2.5 top-2 sm:top-2.5 text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white p-0.5"
             >
               ✕
             </button>
@@ -87,14 +87,14 @@ export default function DistrictSelector({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 my-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 my-3">
         {/* Province Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           {PROVINCE_TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveProvinceId(tab.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border ${
+              className={`px-2.5 sm:px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border flex-shrink-0 touch-manipulation ${
                 activeProvinceId === tab.id
                   ? "bg-[#C51D34] text-white border-white/20 shadow-xs"
                   : "bg-slate-100 dark:bg-[#0A0F1A] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
@@ -106,7 +106,7 @@ export default function DistrictSelector({
         </div>
 
         {/* Alert Filters */}
-        <div className="flex items-center gap-1 self-start sm:self-auto">
+        <div className="flex items-center gap-1 self-start sm:self-auto overflow-x-auto scrollbar-none -mx-1 px-1 flex-shrink-0">
           {[
             { id: "all", label: t.filterAll },
             { id: "danger", label: t.filterDanger },
@@ -116,7 +116,7 @@ export default function DistrictSelector({
             <button
               key={f.id}
               onClick={() => setAlertFilter(f.id)}
-              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap touch-manipulation ${
                 alertFilter === f.id
                   ? f.id === "danger"
                     ? "bg-[#C51D34] text-white"
@@ -135,7 +135,7 @@ export default function DistrictSelector({
       </div>
 
       {/* District Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-[460px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 max-h-[460px] overflow-y-auto pr-1">
         {filteredDistricts.length === 0 ? (
           <div className="col-span-full py-12 text-center text-slate-400 text-xs">
             {t.noDistrictsFound} &ldquo;{searchTerm}&rdquo;
@@ -158,7 +158,7 @@ export default function DistrictSelector({
               <button
                 key={d.districtId}
                 onClick={() => onSelectDistrict(d.districtId)}
-                className={`p-3 rounded-xl text-left transition-all border flex flex-col justify-between ${
+                className={`p-3 rounded-xl text-left transition-all border flex flex-col justify-between active:scale-[0.98] touch-manipulation ${
                   isSelected
                     ? "bg-blue-50 dark:bg-[#1E293B] border-[#003893] dark:border-cyan-400 ring-2 ring-[#003893]/20 dark:ring-cyan-400/40 shadow-md"
                     : isDanger
