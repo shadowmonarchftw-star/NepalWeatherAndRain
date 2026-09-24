@@ -25,8 +25,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      # npm install (like Vercel) rather than npm ci: the lock file is not strictly in sync
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - run: npm run build
 
       - name: Start app
