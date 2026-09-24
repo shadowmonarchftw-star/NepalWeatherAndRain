@@ -11,6 +11,7 @@ on:
       - "app/api/**"
       - "lib/**"
       - "scripts/verify-data.mjs"
+      - ".github/workflows/data-check.yml"
 
 jobs:
   verify:
@@ -24,7 +25,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # npm install (like Vercel) rather than npm ci: the lock file is not strictly in sync
+      - run: npm install --no-audit --no-fund
       - run: npm run build
 
       - name: Start app
