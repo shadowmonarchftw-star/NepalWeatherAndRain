@@ -28,7 +28,7 @@ export const TRANSLATIONS = {
 
     // Map Controls
     mapLayers: "Map Layers:",
-    layerRain: "Rainfall & Hazard",
+    layerRain: "Forecast Rain & Risk",
     layerRadar: "Live Rain Radar",
     layerSatellite: "Satellite Clouds",
     layerRivers: "DHM Rivers & Basins",
@@ -160,7 +160,7 @@ export const TRANSLATIONS = {
 
     // Map Controls
     mapLayers: "नक्शा तहहरू:",
-    layerRain: "वर्षा तथा जोखिम",
+    layerRain: "पूर्वानुमान वर्षा तथा जोखिम",
     layerRadar: "प्रत्यक्ष वर्षा रडार",
     layerSatellite: "उपग्रह बादल (स्याटेलाइट)",
     layerRivers: "नदी तथा जलाधार",

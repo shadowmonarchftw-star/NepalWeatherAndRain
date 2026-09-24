@@ -82,3 +82,56 @@ export interface NDRRMAAlert {
   description?: string;
   householdCount?: number;
 }
+
+export interface DHMRainStation {
+  id: number;
+  name: string;
+  basin?: string;
+  districtId: string | null;
+  coordinates: [number, number]; // [lat, lon]
+  elevation?: number;
+  measuredOn: string;
+  // Accumulated rainfall (mm) over the past N hours, exactly as published by DHM; null = not reported
+  rain1h: number | null;
+  rain3h: number | null;
+  rain6h: number | null;
+  rain12h: number | null;
+  rain24h: number | null;
+  // DHM's own threshold flags
+  status: "Normal" | "Warning" | "Danger";
+}
+
+export interface AirQualityStation {
+  id: number;
+  name: string;
+  nepaliName?: string;
+  districtId: string | null;
+  coordinates: [number, number]; // [lat, lon]
+  measuredOn: string;
+  aqi: number;
+  aqiColor?: string;
+  pm25: number | null;
+}
+
+export interface BipadIncident {
+  id: number;
+  title: string;
+  titleNe?: string;
+  hazard: string;
+  hazardNe?: string;
+  hazardColor?: string;
+  incidentOn: string;
+  reportedOn?: string;
+  coordinates: [number, number] | null; // [lat, lon]
+  deaths: number;
+  missing: number;
+  injured: number;
+  housesDestroyed: number;
+  familiesAffected: number;
+}
+
+export interface ObservedDistrictRain {
+  max24hMm: number;
+  stationName: string;
+  gaugeCount: number;
+}

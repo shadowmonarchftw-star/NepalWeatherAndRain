@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, MapPin, CloudRain, Mountain } from "lucide-react";
-import { DistrictWeatherSummary } from "@/lib/types";
+import { Search, MapPin, CloudRain, Mountain, Gauge } from "lucide-react";
+import { DistrictWeatherSummary, ObservedDistrictRain } from "@/lib/types";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
 interface DistrictSelectorProps {
@@ -10,6 +10,7 @@ interface DistrictSelectorProps {
   selectedDistrictId?: string;
   onSelectDistrict: (districtId: string) => void;
   lang?: Language;
+  observedRain?: Record<string, ObservedDistrictRain>;
 }
 
 export default function DistrictSelector({
@@ -17,6 +18,7 @@ export default function DistrictSelector({
   selectedDistrictId,
   onSelectDistrict,
   lang = "en",
+  observedRain = {},
 }: DistrictSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeProvinceId, setActiveProvinceId] = useState(0);
@@ -183,9 +185,22 @@ export default function DistrictSelector({
                 </div>
 
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-[#C51D34] dark:text-[#FF4D6D] font-bold text-xs tabular-nums">
-                    <CloudRain className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-                    <span>{d.total24hRain} mm</span>
+                  <div className="flex flex-col gap-0.5 text-[10px] tabular-nums">
+                    <span
+                      className="flex items-center gap-1 text-slate-700 dark:text-slate-300"
+                      title={lang === "np" ? "आजको पूर्वानुमान (Open-Meteo)" : "Forecast today (Open-Meteo)"}
+                    >
+                      <CloudRain className="w-3 h-3 text-blue-500 dark:text-blue-400" />
+                      {lang === "np" ? "पूर्वानुमान" : "Fcst"} <b>{d.total24hRain} mm</b>
+                    </span>
+                    <span
+                      className="flex items-center gap-1 text-[#C51D34] dark:text-[#FF4D6D]"
+                      title={lang === "np" ? "पछिल्लो २४ घण्टा मापन (DHM)" : "Measured past 24h (DHM gauges)"}
+                    >
+                      <Gauge className="w-3 h-3" />
+                      {lang === "np" ? "मापन" : "Obs"}{" "}
+                      <b>{observedRain[d.districtId] ? `${observedRain[d.districtId].max24hMm} mm` : "—"}</b>
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 tabular-nums">

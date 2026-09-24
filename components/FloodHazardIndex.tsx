@@ -16,6 +16,8 @@ import { DHMRiverStation } from "@/app/api/dhm/route";
 import { NDRRMAAlert } from "@/lib/types";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
+const RISING_WATCH_MARGIN_M = 1.0;
+
 interface FloodHazardIndexProps {
   dhmRivers?: DHMRiverStation[];
   ndrrmaAlerts?: NDRRMAAlert[];
@@ -31,10 +33,28 @@ export default function FloodHazardIndex({
 }: FloodHazardIndexProps) {
   const [activeTab, setActiveTab] = useState<"dhm_gauges" | "ndrrma_alerts" | "rivers" | "highways">("dhm_gauges");
   const [gaugeSearch, setGaugeSearch] = useState("");
-  const [gaugeFilter, setGaugeFilter] = useState<"all" | "elevated">("all");
+  const [gaugeFilter, setGaugeFilter] = useState<"all" | "elevated" | "rising">("all");
   const [visibleGaugeCount, setVisibleGaugeCount] = useState<number>(9);
 
   const t = TRANSLATIONS[lang];
+
+  // Rising watch: DHM marks the gauge RISING and it is already above warning, or within RISING_WATCH_MARGIN_M of it
+  const risingWatch = useMemo(
+    () =>
+      dhmRivers
+        .filter(
+          (r) =>
+            r.steady === "RISING" &&
+            (r.status !== "Normal" ||
+              (r.warningLevelM !== null && r.warningLevelM - r.waterLevelM <= RISING_WATCH_MARGIN_M))
+        )
+        .sort(
+          (a, b) =>
+            (a.warningLevelM !== null ? a.warningLevelM - a.waterLevelM : -Infinity) -
+            (b.warningLevelM !== null ? b.warningLevelM - b.waterLevelM : -Infinity)
+        ),
+    [dhmRivers]
+  );
 
   // Filter and prioritize DHM river stations
   const filteredGauges = useMemo(() => {
@@ -44,6 +64,9 @@ export default function FloodHazardIndex({
     if (gaugeFilter === "elevated") {
       list = list.filter((r) => r.status === "Danger" || r.status === "Warning");
     }
+    if (gaugeFilter === "rising") {
+      list = [...risingWatch];
+    }
     if (gaugeSearch.trim()) {
       const q = gaugeSearch.toLowerCase();
       list = list.filter((r) => r.name.toLowerCase().includes(q) || r.river.toLowerCase().includes(q));
@@ -51,7 +74,7 @@ export default function FloodHazardIndex({
     // Sort by DHM status: Danger first, then Warning, then Normal
     const rank = (s: DHMRiverStation) => (s.status === "Danger" ? 2 : s.status === "Warning" ? 1 : 0);
     return list.sort((a, b) => rank(b) - rank(a));
-  }, [dhmRivers, gaugeFilter, gaugeSearch]);
+  }, [dhmRivers, gaugeFilter, gaugeSearch, risingWatch]);
 
   const displayedGauges = filteredGauges.slice(0, visibleGaugeCount);
 
@@ -181,6 +204,25 @@ export default function FloodHazardIndex({
             )}
           </div>
 
+          {risingWatch.length > 0 && (
+            <div className="p-2.5 sm:p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40 text-xs text-amber-900 dark:text-amber-200">
+              <span className="font-bold">
+                {lang === "np" ? "बढ्दो निगरानी:" : "Rising watch:"}
+              </span>{" "}
+              {risingWatch
+                .slice(0, 4)
+                .map((r) =>
+                  r.warningLevelM === null
+                    ? r.name
+                    : r.warningLevelM - r.waterLevelM > 0
+                    ? `${r.name} (${(r.warningLevelM - r.waterLevelM).toFixed(2)} m ${lang === "np" ? "तल" : "below warning"})`
+                    : `${r.name} (${lang === "np" ? "चेतावनीभन्दा माथि" : "above warning"})`
+                )
+                .join(" · ")}
+              {risingWatch.length > 4 && ` +${risingWatch.length - 4}`}
+            </div>
+          )}
+
           {/* Search & Filter Toolbar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="relative flex-1">
@@ -213,6 +255,21 @@ export default function FloodHazardIndex({
                 }`}
               >
                 {lang === "np" ? "सतर्कता / उच्च" : "Elevated Only"}
+              </button>
+              <button
+                onClick={() => setGaugeFilter("rising")}
+                title={
+                  lang === "np"
+                    ? "बढ्दो र चेतावनी तहभन्दा १ मिटरभित्र वा माथि"
+                    : "Rising and within 1 m of (or above) the DHM warning level"
+                }
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all touch-manipulation ${
+                  gaugeFilter === "rising"
+                    ? "bg-amber-500 text-white shadow-xs"
+                    : "bg-slate-100 dark:bg-[#0A0F1A] text-slate-600 dark:text-slate-400"
+                }`}
+              >
+                {lang === "np" ? "बढ्दो निगरानी" : "Rising Watch"} ({risingWatch.length})
               </button>
             </div>
           </div>

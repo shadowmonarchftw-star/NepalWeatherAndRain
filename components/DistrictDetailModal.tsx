@@ -20,7 +20,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { DistrictWeatherSummary } from "@/lib/types";
+import { DistrictWeatherSummary, DHMRainStation } from "@/lib/types";
 import { interpretWmoCode } from "@/lib/alertCalculator";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
@@ -28,12 +28,14 @@ interface DistrictDetailModalProps {
   district: DistrictWeatherSummary | null;
   onClose: () => void;
   lang?: Language;
+  rainStations?: DHMRainStation[];
 }
 
 export default function DistrictDetailModal({
   district,
   onClose,
   lang = "en",
+  rainStations = [],
 }: DistrictDetailModalProps) {
   if (!district) return null;
 
@@ -146,8 +148,8 @@ export default function DistrictDetailModal({
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] sm:text-xs">
                 {isDanger
                   ? lang === "np"
-                    ? "मनसुनी न्यूनचापीय प्रणालीका कारण भारी वर्षाको प्रक्षेपण छ। नदी किनार तथा पहिरोको जोखिम भएका पहाडी भिरालो क्षेत्रबाट तत्काल सतर्क रहन अनुरोध गरिन्छ।"
-                    : "Extreme rainfall forecast due to maritime moisture convergence against mid-hill terrain. Immediate evacuation from riverbanks and landslide-prone steep slopes advised."
+                    ? "मोडेल पूर्वानुमानले भारी वर्षा देखाउँछ। नदी किनार तथा पहिरो जोखिम क्षेत्रमा सतर्क रहनुहोस् र DHM/NDRRMA को आधिकारिक सूचना पालना गर्नुहोस्।"
+                    : "Model forecast shows very heavy rain. Stay alert near riverbanks and landslide-prone slopes, and follow official DHM/NDRRMA alerts."
                   : isWarning
                   ? lang === "np"
                     ? "मध्यम तथा भारी वर्षाको सम्भावना। खोला-नालामा पानीको बहाव आकस्मिक रूपमा बढ्न सक्ने भएकाले यात्रा गर्दा सतर्कता अपनाउनुहोस्।"
@@ -159,11 +161,77 @@ export default function DistrictDetailModal({
             </div>
           </div>
 
+          {/* Measured rainfall from DHM rain gauges in this district */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <Gauge className="w-4 h-4 text-[#C51D34] dark:text-[#FF4D6D]" />
+                {lang === "np" ? "मापन गरिएको वर्षा (DHM वर्षा मापन केन्द्र)" : "Measured rainfall (DHM rain gauges)"}
+              </h4>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                {rainStations.length} {lang === "np" ? "केन्द्र" : "gauges"}
+              </span>
+            </div>
+            {rainStations.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {lang === "np"
+                  ? "यस जिल्लामा हाल सक्रिय DHM वर्षा मापन केन्द्र छैन।"
+                  : "No DHM rain gauge in this district is reporting right now."}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] tabular-nums">
+                  <thead>
+                    <tr className="text-slate-500 dark:text-slate-400 text-left">
+                      <th className="font-semibold py-1 pr-2">{lang === "np" ? "केन्द्र" : "Gauge"}</th>
+                      <th className="font-semibold py-1 px-1 text-right">1h</th>
+                      <th className="font-semibold py-1 px-1 text-right">3h</th>
+                      <th className="font-semibold py-1 px-1 text-right">6h</th>
+                      <th className="font-semibold py-1 px-1 text-right">12h</th>
+                      <th className="font-semibold py-1 pl-1 text-right">24h</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rainStations.map((s) => (
+                      <tr key={s.id} className="border-t border-slate-200 dark:border-slate-800">
+                        <td className="py-1 pr-2 text-slate-800 dark:text-slate-200">
+                          {s.name}
+                          {s.status !== "Normal" && (
+                            <span className="ml-1 px-1 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300">
+                              {s.status.toUpperCase()}
+                            </span>
+                          )}
+                        </td>
+                        {[s.rain1h, s.rain3h, s.rain6h, s.rain12h].map((v, i) => (
+                          <td key={i} className="py-1 px-1 text-right text-slate-600 dark:text-slate-300">
+                            {v ?? "—"}
+                          </td>
+                        ))}
+                        <td className="py-1 pl-1 text-right font-bold text-slate-900 dark:text-white">{s.rain24h ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
+                  mm ·{" "}
+                  {lang === "np" ? "पछिल्लो मापन" : "Last reading"}{" "}
+                  {new Date(rainStations[0].measuredOn).toLocaleString(lang === "np" ? "ne-NP" : "en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  · Source: DHM / hydrology.gov.np
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Key Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
             <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs mb-1">
-                <span>{lang === "np" ? "२४ घण्टे वर्षा" : "24h Rainfall"}</span>
+                <span>{lang === "np" ? "२४ घण्टे पूर्वानुमान" : "24h Forecast Rain"}</span>
                 <CloudRain className="w-4 h-4 text-[#C51D34] dark:text-[#FF4D6D]" />
               </div>
               <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">{district.total24hRain} mm</div>

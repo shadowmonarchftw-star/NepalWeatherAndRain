@@ -7,12 +7,21 @@ import NationalSituationBar from "@/components/NationalSituationBar";
 import ProvinceQuickJumper from "@/components/ProvinceQuickJumper";
 import MapControls, { MapLayerType, ForecastTimeWindow, BasemapType } from "@/components/MapControls";
 import FloodHazardIndex from "@/components/FloodHazardIndex";
+import ObservedConditions from "@/components/ObservedConditions";
 import DistrictSelector from "@/components/DistrictSelector";
 import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
 import LiveSatelliteModal from "@/components/LiveSatelliteModal";
 import Footer from "@/components/Footer";
-import { DistrictWeatherSummary, RainViewerData, NDRRMAAlert } from "@/lib/types";
+import {
+  DistrictWeatherSummary,
+  RainViewerData,
+  NDRRMAAlert,
+  DHMRainStation,
+  AirQualityStation,
+  BipadIncident,
+} from "@/lib/types";
+import { summarizeObservedRainByDistrict } from "@/lib/observedRain";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language } from "@/lib/translations";
 
@@ -61,6 +70,9 @@ export default function Home() {
   const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>([]);
   const [dhmRivers, setDhmRivers] = useState<DHMRiverStation[]>([]);
   const [ndrrmaAlerts, setNdrrmaAlerts] = useState<NDRRMAAlert[]>([]);
+  const [rainStations, setRainStations] = useState<DHMRainStation[]>([]);
+  const [aqiStations, setAqiStations] = useState<AirQualityStation[]>([]);
+  const [incidents, setIncidents] = useState<BipadIncident[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number>(0);
 
@@ -148,6 +160,27 @@ export default function Home() {
     const interval = setInterval(loadNDRRMA, 300000);
     return () => clearInterval(interval);
   }, []);
+
+  // Measured conditions from BIPAD: DHM rain gauges, air quality, verified incidents (every 5 minutes)
+  useEffect(() => {
+    async function loadMeasured() {
+      const [rainRes, aqiRes, incRes] = await Promise.allSettled([
+        fetch("/api/rain").then((r) => r.json()),
+        fetch("/api/aqi").then((r) => r.json()),
+        fetch("/api/incidents").then((r) => r.json()),
+      ]);
+      // A failed feed shows as empty ("unavailable") rather than keeping readings of unknown age
+      setRainStations(rainRes.status === "fulfilled" && Array.isArray(rainRes.value.stations) ? rainRes.value.stations : []);
+      setAqiStations(aqiRes.status === "fulfilled" && Array.isArray(aqiRes.value.stations) ? aqiRes.value.stations : []);
+      setIncidents(incRes.status === "fulfilled" && Array.isArray(incRes.value.incidents) ? incRes.value.incidents : []);
+    }
+
+    loadMeasured();
+    const interval = setInterval(loadMeasured, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const observedRainByDistrict = useMemo(() => summarizeObservedRainByDistrict(rainStations), [rainStations]);
 
   // 3. Fetch live RainViewer radar timestamps on load & refresh every 5 minutes
   useEffect(() => {
@@ -330,6 +363,8 @@ export default function Home() {
             districtsData={districtsData}
             dhmRivers={dhmRivers}
             ndrrmaAlerts={ndrrmaAlerts}
+            rainStations={rainStations}
+            aqiStations={aqiStations}
             activeLayer={activeLayer}
             timeWindow={timeWindow}
             basemap={basemap}
@@ -341,6 +376,17 @@ export default function Home() {
             onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
             lang={lang}
             theme={theme}
+          />
+        </section>
+
+        {/* Measured rainfall, air quality and incidents */}
+        <section>
+          <ObservedConditions
+            rainStations={rainStations}
+            aqiStations={aqiStations}
+            incidents={incidents}
+            onFocus={(coords) => setMapCenterFocus(coords)}
+            lang={lang}
           />
         </section>
 
@@ -361,6 +407,7 @@ export default function Home() {
             selectedDistrictId={selectedDistrictId || undefined}
             onSelectDistrict={handleSelectDistrict}
             lang={lang}
+            observedRain={observedRainByDistrict}
           />
         </section>
       </main>
@@ -378,6 +425,7 @@ export default function Home() {
         district={selectedDistrict}
         onClose={() => setSelectedDistrictId(null)}
         lang={lang}
+        rainStations={selectedDistrictId ? rainStations.filter((st) => st.districtId === selectedDistrictId) : []}
       />
 
       {/* 10. Emergency Hotlines Modal */}

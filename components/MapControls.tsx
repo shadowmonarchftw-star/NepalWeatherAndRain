@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { CloudRain, Radio, Cloud, Waves, Play, Pause, Layers, Satellite, Map as MapIcon } from "lucide-react";
+import { CloudRain, Radio, Cloud, Waves, Play, Pause, Layers, Satellite, Gauge, Wind, Map as MapIcon } from "lucide-react";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
-export type MapLayerType = "precipitation" | "radar" | "satellite" | "rivers";
+export type MapLayerType = "precipitation" | "observed" | "aqi" | "radar" | "satellite" | "rivers";
 export type ForecastTimeWindow = "24h" | "48h" | "72h";
 export type BasemapType = "dark" | "satellite" | "osm";
 
@@ -67,6 +67,32 @@ export default function MapControls({
             <span>{t.layerRain}</span>
           </button>
 
+          {/* Measured rainfall from DHM gauges */}
+          <button
+            onClick={() => onChangeLayer("observed")}
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex-shrink-0 touch-manipulation ${
+              activeLayer === "observed"
+                ? "bg-[#C51D34] text-white border-white/20 shadow-xs"
+                : "bg-slate-100 dark:bg-[#162035] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
+            }`}
+          >
+            <Gauge className="w-3.5 h-3.5" />
+            <span>{lang === "np" ? "मापन वर्षा (DHM)" : "Measured Rain (DHM)"}</span>
+          </button>
+
+          {/* Air quality stations */}
+          <button
+            onClick={() => onChangeLayer("aqi")}
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex-shrink-0 touch-manipulation ${
+              activeLayer === "aqi"
+                ? "bg-[#003893] text-white border-blue-400 shadow-xs"
+                : "bg-slate-100 dark:bg-[#162035] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
+            }`}
+          >
+            <Wind className="w-3.5 h-3.5" />
+            <span>{lang === "np" ? "वायु गुणस्तर" : "Air Quality"}</span>
+          </button>
+
           {/* 2. Live RainViewer Radar */}
           <button
             onClick={() => onChangeLayer("radar")}
@@ -81,7 +107,7 @@ export default function MapControls({
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse ml-0.5" />
           </button>
 
-          {/* 3. Bay of Bengal Satellite Cloud Deck */}
+          {/* 3. Satellite Cloud Deck */}
           <button
             onClick={() => onChangeLayer("satellite")}
             className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex-shrink-0 touch-manipulation ${

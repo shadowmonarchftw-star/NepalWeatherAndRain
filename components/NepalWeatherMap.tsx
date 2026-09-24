@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { DistrictWeatherSummary, NDRRMAAlert } from "@/lib/types";
+import { DistrictWeatherSummary, NDRRMAAlert, DHMRainStation, AirQualityStation } from "@/lib/types";
 import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
@@ -14,6 +14,8 @@ interface NepalWeatherMapProps {
   districtsData: DistrictWeatherSummary[];
   dhmRivers?: DHMRiverStation[];
   ndrrmaAlerts?: NDRRMAAlert[];
+  rainStations?: DHMRainStation[];
+  aqiStations?: AirQualityStation[];
   activeLayer: MapLayerType;
   timeWindow: ForecastTimeWindow;
   basemap: BasemapType;
@@ -89,6 +91,8 @@ export default function NepalWeatherMap({
   districtsData,
   dhmRivers = [],
   ndrrmaAlerts = [],
+  rainStations = [],
+  aqiStations = [],
   activeLayer,
   timeWindow,
   basemap,
@@ -109,6 +113,7 @@ export default function NepalWeatherMap({
   const riversLayerRef = useRef<L.LayerGroup | null>(null);
   const dhmRadarLayerRef = useRef<L.LayerGroup | null>(null);
   const ndrrmaLayerRef = useRef<L.LayerGroup | null>(null);
+  const observedLayerRef = useRef<L.LayerGroup | null>(null);
   const borderLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -156,6 +161,7 @@ export default function NepalWeatherMap({
     riversLayerRef.current = L.layerGroup().addTo(map);
     dhmRadarLayerRef.current = L.layerGroup().addTo(map);
     ndrrmaLayerRef.current = L.layerGroup().addTo(map);
+    observedLayerRef.current = L.layerGroup().addTo(map);
 
     // Render Nepal National Boundary Polygon
     const borderPolygon = L.polygon(NEPAL_BORDER_COORDINATES, {
@@ -411,6 +417,8 @@ export default function NepalWeatherMap({
     if (!markersLayerRef.current) return;
     const markersGroup = markersLayerRef.current;
     markersGroup.clearLayers();
+    // Station layers replace the forecast district markers so the two are never mixed up
+    if (activeLayer === "observed" || activeLayer === "aqi") return;
 
     districtsData.forEach((district) => {
       const rainMm =
@@ -504,7 +512,58 @@ export default function NepalWeatherMap({
       circleMarker.on("click", () => onSelectDistrict(district.districtId));
       markersGroup.addLayer(circleMarker);
     });
-  }, [districtsData, timeWindow, selectedDistrictId, onSelectDistrict, lang, t.dhmAlert, theme]);
+  }, [districtsData, timeWindow, selectedDistrictId, onSelectDistrict, lang, t.dhmAlert, theme, activeLayer]);
+
+  // Render measured-rain gauges or air-quality stations
+  useEffect(() => {
+    if (!observedLayerRef.current) return;
+    const group = observedLayerRef.current;
+    group.clearLayers();
+    const fmt = (iso: string) =>
+      new Date(iso).toLocaleString(lang === "np" ? "ne-NP" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+    if (activeLayer === "observed") {
+      // Draw light values first so heavy-rain gauges sit on top
+      [...rainStations].reverse().forEach((st) => {
+        const mm = st.rain24h;
+        const fill = mm === null ? "#94a3b8" : mm >= 100 ? "#C51D34" : mm >= 50 ? "#F59E0B" : mm >= 25 ? "#FACC15" : mm > 0 ? "#38BDF8" : "#CBD5E1";
+        const marker = L.circleMarker(st.coordinates, {
+          radius: mm !== null && mm >= 50 ? 8 : 5.5,
+          fillColor: fill,
+          color: isDark ? "#0f172a" : "#ffffff",
+          weight: 1,
+          fillOpacity: 0.95,
+        });
+        const row = (label: string, v: number | null) =>
+          `<div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:${textSecondary};">${label}</span><b>${v ?? "—"} mm</b></div>`;
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; color: ${textPrimary}; min-width: 170px;">
+            <div style="font-weight: 800; font-size: 13px; border-bottom: 1px solid ${borderLight}; padding-bottom: 4px; margin-bottom: 4px;">${st.name}</div>
+            ${row("1h", st.rain1h)}${row("3h", st.rain3h)}${row("6h", st.rain6h)}${row("12h", st.rain12h)}${row("24h", st.rain24h)}
+            ${st.status !== "Normal" ? `<div style="margin-top:4px;font-weight:700;color:#b45309;">DHM: ${st.status.toUpperCase()}</div>` : ""}
+            <div style="font-size: 9px; color: ${textMuted}; margin-top: 4px;">${fmt(st.measuredOn)} · Source: DHM / hydrology.gov.np</div>
+          </div>
+        `);
+        group.addLayer(marker);
+      });
+    } else if (activeLayer === "aqi") {
+      aqiStations.forEach((st) => {
+        const icon = L.divIcon({
+          className: "custom-aqi-marker",
+          html: `<div style="transform: translate(-50%, -50%); min-width: 30px; padding: 2px 5px; border-radius: 9999px; background: ${st.aqiColor || "#94a3b8"}; color: #0f172a; font-weight: 800; font-size: 11px; text-align: center; border: 1px solid #0f172a33; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${st.aqi}</div>`,
+        });
+        const marker = L.marker(st.coordinates, { icon });
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; color: ${textPrimary}; min-width: 160px;">
+            <div style="font-weight: 800; font-size: 13px;">${lang === "np" && st.nepaliName ? st.nepaliName : st.name}</div>
+            <div style="margin-top: 4px;">AQI <b>${st.aqi}</b>${st.pm25 !== null ? ` · PM2.5 <b>${st.pm25}</b> µg/m³` : ""}</div>
+            <div style="font-size: 9px; color: ${textMuted}; margin-top: 4px;">${fmt(st.measuredOn)} · Source: pollution.gov.np</div>
+          </div>
+        `);
+        group.addLayer(marker);
+      });
+    }
+  }, [activeLayer, rainStations, aqiStations, lang, theme]);
 
   // Render NDRRMA Disaster Alerts
   useEffect(() => {
@@ -601,26 +660,39 @@ export default function NepalWeatherMap({
           } sm:block p-3 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-md text-xs text-slate-800 dark:text-white max-w-[210px] transition-colors`}
         >
           <div className="font-bold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
-            <span>{lang === "np" ? "वर्षा जोखिम" : "Rainfall Risk"} ({timeWindow})</span>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">Open-Meteo</span>
+            <span>
+              {activeLayer === "aqi"
+                ? "AQI"
+                : activeLayer === "observed"
+                ? lang === "np" ? "मापन वर्षा (२४ घण्टा)" : "Measured rain (24h)"
+                : `${lang === "np" ? "पूर्वानुमान वर्षा" : "Forecast rain"} (${timeWindow})`}
+            </span>
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+              {activeLayer === "aqi" ? "DoE" : activeLayer === "observed" ? "DHM" : "Open-Meteo"}
+            </span>
           </div>
           <div className="space-y-1.5 font-medium text-[11px]">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#C51D34] border border-white flex-shrink-0 animate-pulse" />
-              <span>&gt; 100 mm ({lang === "np" ? "खतरा" : "Danger"})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] border border-white/50 flex-shrink-0" />
-              <span>50 - 100 mm ({lang === "np" ? "चेतावनी" : "Warning"})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FACC15] border border-white/50 flex-shrink-0" />
-              <span>25 - 50 mm ({lang === "np" ? "सतर्कता" : "Watch"})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] border border-white/50 flex-shrink-0" />
-              <span>&lt; 25 mm ({lang === "np" ? "सामान्य" : "Normal"})</span>
-            </div>
+            {(activeLayer === "aqi"
+              ? [
+                  ["#FF0000", "151 – 200+", lang === "np" ? "अस्वस्थ" : "Unhealthy"],
+                  ["#FF7300", "101 – 150", lang === "np" ? "संवेदनशीलका लागि अस्वस्थ" : "Sensitive groups"],
+                  ["#FFFF00", "51 – 100", lang === "np" ? "मध्यम" : "Moderate"],
+                  ["#00E400", "0 – 50", lang === "np" ? "राम्रो" : "Good"],
+                ]
+              : [
+                  ["#C51D34", "> 100 mm", lang === "np" ? "धेरै भारी" : "Very heavy"],
+                  ["#F59E0B", "50 – 100 mm", lang === "np" ? "भारी" : "Heavy"],
+                  ["#FACC15", "25 – 50 mm", lang === "np" ? "मध्यम" : "Moderate"],
+                  [activeLayer === "observed" ? "#38BDF8" : "#10B981", "< 25 mm", lang === "np" ? "हल्का" : "Light"],
+                ]
+            ).map(([color, range, label]) => (
+              <div key={range} className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full border border-white/50 flex-shrink-0" style={{ backgroundColor: color }} />
+                <span>
+                  {range} ({label})
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
