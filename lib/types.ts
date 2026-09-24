@@ -85,3 +85,17 @@ export interface RainViewerData {
   radarNowcast: RadarFrame[];
   satellite: RadarFrame[];
 }
+
+export interface NDRRMAAlert {
+  id: number;
+  title: string;
+  titleNe: string;
+  source: string;
+  referenceType: string;
+  startedOn: string;
+  expireOn?: string;
+  lat: number;
+  lon: number;
+  description?: string;
+  householdCount?: number;
+}

@@ -71,6 +71,7 @@ export const TRANSLATIONS = {
     dhmTelemetryTitle: "River Basin Flood & Live DHM Telemetry",
     dhmGovNepal: "Department of Hydrology & Meteorology (जल तथा मौसम विज्ञान विभाग)",
     tabDhmGauges: "Live DHM Gauges",
+    tabNdrrmaAlerts: "NDRRMA Live Alerts",
     tabBasinModels: "Basin Models",
     tabHighways: "Highways & Passes",
     liveDhmConnected: "Live DHM Telemetry Connected",
@@ -81,6 +82,16 @@ export const TRANSLATIONS = {
     capacityToWarning: "Capacity to Warning:",
     sensorSource: "Source: DHM Real-Time Sensor",
     liveHydrologyFeed: "Live Hydrology Feed",
+
+    // NDRRMA BIPAD Telemetry
+    ndrrmaTitle: "NDRRMA BIPAD Portal Live Alerts",
+    ndrrmaGovNepal: "National Disaster Risk Reduction & Management Authority (NDRRMA)",
+    ndrrmaConnected: "Live NDRRMA BIPAD Connected",
+    ndrrmaSub: "Real-time flash flood, landslide and cloudburst early warnings verified by NDRRMA BIPAD portal.",
+    ndrrmaType: "Alert Category",
+    ndrrmaStarted: "Issued On",
+    ndrrmaHouseholds: "Affected Households",
+    ndrrmaFocusMap: "Focus on Map →",
 
     // 77 Districts Explorer
     explorerTitle: "77 Districts Rain & Forecast Explorer",
@@ -183,6 +194,7 @@ export const TRANSLATIONS = {
     dhmTelemetryTitle: "नदी जलाधार बाढी तथा प्रत्यक्ष DHM मापन",
     dhmGovNepal: "जल तथा मौसम विज्ञान विभाग, नेपाल सरकार",
     tabDhmGauges: "प्रत्यक्ष नदी जलसतह",
+    tabNdrrmaAlerts: "NDRRMA प्रत्यक्ष पूर्वसूचना",
     tabBasinModels: "जलाधार जोखिम",
     tabHighways: "राजमार्ग तथा पहिरो",
     liveDhmConnected: "DHM प्रत्यक्ष सेन्सर जोडिएको",
@@ -193,6 +205,16 @@ export const TRANSLATIONS = {
     capacityToWarning: "चेतावनी तहको अनुपात:",
     sensorSource: "स्रोत: DHM स्वचालित जलसतह सेन्सर",
     liveHydrologyFeed: "प्रत्यक्ष जलविज्ञान फिड",
+
+    // NDRRMA BIPAD Telemetry
+    ndrrmaTitle: "NDRRMA विपद् पोर्टल प्रत्यक्ष चेतावनी",
+    ndrrmaGovNepal: "राष्ट्रिय विपद् जोखिम न्यूनीकरण तथा व्यवस्थापन प्राधिकरण (NDRRMA)",
+    ndrrmaConnected: "NDRRMA विपद् पोर्टल प्रत्यक्ष जोडिएको",
+    ndrrmaSub: "राष्ट्रिय विपद् जोखिम न्यूनीकरण तथा व्यवस्थापन प्राधिकरणद्वारा जारी बाढी, पहिरो तथा भारी वर्षाको आधिकारिक पूर्वसूचना।",
+    ndrrmaType: "विपद् किसिम",
+    ndrrmaStarted: "जारी समय",
+    ndrrmaHouseholds: "प्रभावित घरधुरी",
+    ndrrmaFocusMap: "नक्शामा हेर्नुहोस् →",
 
     // 77 Districts Explorer
     explorerTitle: "७७ वटै जिल्लाको वर्षा तथा पूर्वानुमान",

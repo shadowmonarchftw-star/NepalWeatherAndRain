@@ -13,7 +13,7 @@ import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
 import LiveSatelliteModal from "@/components/LiveSatelliteModal";
 import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
-import { DistrictWeatherSummary, RainViewerData } from "@/lib/types";
+import { DistrictWeatherSummary, RainViewerData, NDRRMAAlert } from "@/lib/types";
 import { generateSynopticFallbackForDistrict, getBayOfBengalTelemetry } from "@/lib/openMeteo";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language } from "@/lib/translations";
@@ -69,6 +69,7 @@ export default function Home() {
 
   const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>(initialDistricts);
   const [dhmRivers, setDhmRivers] = useState<DHMRiverStation[]>([]);
+  const [ndrrmaAlerts, setNdrrmaAlerts] = useState<NDRRMAAlert[]>([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number>(0);
 
@@ -127,6 +128,27 @@ export default function Home() {
 
     loadDHM();
     const interval = setInterval(loadDHM, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 3. Fetch live NDRRMA BIPAD disaster alerts on mount & auto-refresh every 5 minutes
+  useEffect(() => {
+    async function loadNDRRMA() {
+      try {
+        const res = await fetch("/api/ndrrma");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.alerts)) {
+            setNdrrmaAlerts(data.alerts);
+          }
+        }
+      } catch (err) {
+        console.warn("Using cached NDRRMA alerts", err);
+      }
+    }
+
+    loadNDRRMA();
+    const interval = setInterval(loadNDRRMA, 300000);
     return () => clearInterval(interval);
   }, []);
 
@@ -195,9 +217,10 @@ export default function Home() {
   const refreshWeatherData = async () => {
     setIsRefreshing(true);
     try {
-      const [weatherRes, dhmRes] = await Promise.allSettled([
+      const [weatherRes, dhmRes, ndrrmaRes] = await Promise.allSettled([
         fetch("/api/weather"),
         fetch("/api/dhm"),
+        fetch("/api/ndrrma"),
       ]);
 
       if (weatherRes.status === "fulfilled" && weatherRes.value.ok) {
@@ -208,6 +231,11 @@ export default function Home() {
       if (dhmRes.status === "fulfilled" && dhmRes.value.ok) {
         const dData = await dhmRes.value.json();
         if (dData.rivers?.length) setDhmRivers(dData.rivers);
+      }
+
+      if (ndrrmaRes.status === "fulfilled" && ndrrmaRes.value.ok) {
+        const nData = await ndrrmaRes.value.json();
+        if (Array.isArray(nData.alerts)) setNdrrmaAlerts(nData.alerts);
       }
     } catch (err) {
       console.error("Refresh error", err);
@@ -305,6 +333,7 @@ export default function Home() {
           <NepalWeatherMap
             districtsData={districtsData}
             dhmRivers={dhmRivers}
+            ndrrmaAlerts={ndrrmaAlerts}
             telemetry={telemetry}
             activeLayer={activeLayer}
             timeWindow={timeWindow}
@@ -324,6 +353,8 @@ export default function Home() {
         <section>
           <FloodHazardIndex
             dhmRivers={dhmRivers}
+            ndrrmaAlerts={ndrrmaAlerts}
+            onSelectAlertFocus={(coords) => setMapCenterFocus(coords)}
             onSelectBasinFocus={(basinId) => {
               if (basinId.includes("koshi")) setMapCenterFocus([27.0, 87.2]);
               else if (basinId.includes("bagmati")) setMapCenterFocus([27.7, 85.3]);

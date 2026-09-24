@@ -68,8 +68,8 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-5xl max-h-[96vh] rounded-3xl bg-[#071326] border-2 border-[#003893] text-white shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 dark:bg-black/90 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-5xl max-h-[96vh] rounded-3xl bg-white dark:bg-[#071326] border border-slate-200 dark:border-2 dark:border-[#003893] text-slate-900 dark:text-white shadow-2xl flex flex-col overflow-hidden transition-colors">
         {/* Flag Bar */}
         <div className="h-1.5 w-full flex flex-shrink-0">
           <div className="h-full w-1/3 bg-[#DC143C]" />
@@ -78,21 +78,21 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
         </div>
 
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-[#1A365D] bg-gradient-to-r from-[#0C1C36] to-[#071326] flex items-center justify-between gap-3 flex-shrink-0">
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-gradient-to-r dark:from-[#0C1C36] dark:to-[#071326] flex items-center justify-between gap-3 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[#003893] text-white border border-cyan-400 shadow-md">
+            <div className="p-2.5 rounded-2xl bg-[#003893] text-white border border-blue-400 dark:border-cyan-400 shadow-md">
               <Satellite className="w-5 h-5 text-cyan-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                   Live Geostationary Satellite Imagery (INSAT-3D / 3DS)
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40">
                   100% Free Public Feed
                 </span>
               </div>
-              <p className="text-xs text-blue-200">
+              <p className="text-xs text-slate-500 dark:text-blue-200">
                 Direct imagery covering Nepal Himalayas & the Bay of Bengal (updated every 15-30 min)
               </p>
             </div>
@@ -102,7 +102,7 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="p-2 rounded-xl bg-[#0C1C36] hover:bg-[#152D54] border border-[#1A365D] text-xs font-semibold text-blue-200 flex items-center gap-1.5 transition-all disabled:opacity-50"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-[#0C1C36] hover:bg-slate-200 dark:hover:bg-[#152D54] border border-slate-200 dark:border-[#1A365D] text-xs font-semibold text-slate-700 dark:text-blue-200 flex items-center gap-1.5 transition-all disabled:opacity-50"
               title="Force reload latest satellite capture"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -110,7 +110,7 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-[#122442] hover:bg-[#DC143C] text-blue-200 hover:text-white transition-all"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-[#122442] hover:bg-[#DC143C] text-slate-600 dark:text-blue-200 hover:text-white transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -118,7 +118,7 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
         </div>
 
         {/* Product Selector Tabs */}
-        <div className="px-4 py-2.5 bg-[#050D1A] border-b border-[#16335C] flex items-center gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
+        <div className="px-4 py-2.5 bg-slate-100 dark:bg-[#050D1A] border-b border-slate-200 dark:border-[#16335C] flex items-center gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
           {(Object.keys(SATELLITE_PRODUCTS) as SatelliteProduct[]).map((key) => {
             const prod = SATELLITE_PRODUCTS[key];
             const Icon = prod.icon;
@@ -129,8 +129,8 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
                 onClick={() => setSelectedProduct(key)}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
                   isSelected
-                    ? "bg-[#DC143C] text-white border-white/30 shadow-md shadow-[#DC143C]/40"
-                    : "bg-[#091529] text-blue-200 hover:bg-[#112648] border-[#16335C]"
+                    ? "bg-[#DC143C] text-white border-white/30 shadow-xs"
+                    : "bg-white dark:bg-[#091529] text-slate-700 dark:text-blue-200 hover:bg-slate-200 dark:hover:bg-[#112648] border-slate-200 dark:border-[#16335C]"
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : prod.color}`} />
@@ -141,18 +141,18 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
         </div>
 
         {/* Satellite Image Viewer & Description */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#030812]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-[#030812]">
           {/* Info Banner */}
-          <div className="p-3 rounded-xl bg-[#0A162B] border border-[#1A365D] text-xs text-blue-100 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+          <div className="p-3 rounded-xl bg-white dark:bg-[#0A162B] border border-slate-200 dark:border-[#1A365D] text-xs text-slate-700 dark:text-blue-100 flex items-start gap-2.5 shadow-xs">
+            <Info className="w-4 h-4 text-blue-600 dark:text-cyan-400 flex-shrink-0 mt-0.5" />
             <div>
-              <strong className="text-white">{currentProduct.title}: </strong>
+              <strong className="text-slate-900 dark:text-white">{currentProduct.title}: </strong>
               <span>{currentProduct.description}</span>
             </div>
           </div>
 
           {/* Image Container with high contrast border */}
-          <div className="relative rounded-2xl overflow-hidden border-2 border-[#1E427B] bg-black flex items-center justify-center min-h-[380px] sm:min-h-[480px]">
+          <div className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-[#1E427B] bg-slate-950 flex items-center justify-center min-h-[380px] sm:min-h-[480px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={currentProduct.url}
@@ -162,21 +162,21 @@ export default function LiveSatelliteModal({ isOpen, onClose }: LiveSatelliteMod
             />
 
             {/* Attribution Watermark */}
-            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/70 border border-white/20 text-[10px] text-white backdrop-blur-sm">
+            <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/75 border border-white/20 text-[10px] text-white backdrop-blur-sm">
               Source: ISRO / IMD INSAT-3D Open Meteorological Data
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3.5 border-t border-[#1A365D] bg-[#071326] flex items-center justify-between text-xs text-blue-300 flex-shrink-0">
+        <div className="p-3.5 border-t border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#071326] flex items-center justify-between text-xs text-slate-600 dark:text-blue-300 flex-shrink-0">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>Public domain satellite data for South Asia & the Bay of Bengal</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-[#DC143C] hover:bg-[#B50F31] font-bold text-white text-xs"
+            className="px-4 py-1.5 rounded-xl bg-[#DC143C] hover:bg-[#B50F31] font-bold text-white text-xs shadow-xs"
           >
             Close Viewer
           </button>

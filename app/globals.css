@@ -104,6 +104,21 @@ html:not(.dark) .leaflet-popup-tip {
   background-color: #ffffff !important;
 }
 
+html:not(.dark) .leaflet-container a.leaflet-popup-close-button {
+  color: #64748b !important;
+  padding: 6px 8px 0 0 !important;
+}
+html:not(.dark) .leaflet-container a.leaflet-popup-close-button:hover {
+  color: #0f172a !important;
+}
+html.dark .leaflet-container a.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  padding: 6px 8px 0 0 !important;
+}
+html.dark .leaflet-container a.leaflet-popup-close-button:hover {
+  color: #ffffff !important;
+}
+
 /* Clean Beacon Animations */
 @keyframes subtle-beacon {
   0% {

@@ -1,24 +1,29 @@
 "use client";
 
 import React, { useState } from "react";
-import { Waves, TrendingUp, Car, Activity } from "lucide-react";
+import { Waves, TrendingUp, Car, Activity, ShieldAlert, AlertTriangle, Users, MapPin } from "lucide-react";
 import { INITIAL_RIVER_BASINS } from "@/data/nepalProvinces";
 import { HIGHWAY_ADVISORIES } from "@/data/emergencyHotlines";
 import { DHMRiverStation } from "@/app/api/dhm/route";
+import { NDRRMAAlert } from "@/lib/types";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
 interface FloodHazardIndexProps {
   dhmRivers?: DHMRiverStation[];
+  ndrrmaAlerts?: NDRRMAAlert[];
   onSelectBasinFocus?: (basinId: string) => void;
+  onSelectAlertFocus?: (coords: [number, number]) => void;
   lang?: Language;
 }
 
 export default function FloodHazardIndex({
   dhmRivers = [],
+  ndrrmaAlerts = [],
   onSelectBasinFocus,
+  onSelectAlertFocus,
   lang = "en",
 }: FloodHazardIndexProps) {
-  const [activeTab, setActiveTab] = useState<"dhm_gauges" | "rivers" | "highways">("dhm_gauges");
+  const [activeTab, setActiveTab] = useState<"dhm_gauges" | "ndrrma_alerts" | "rivers" | "highways">("dhm_gauges");
   const t = TRANSLATIONS[lang];
 
   return (
@@ -35,7 +40,7 @@ export default function FloodHazardIndex({
                 {t.dhmTelemetryTitle}
               </h3>
               <span className="px-2 py-0.2 rounded-full text-[9px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40">
-                DHM NEPAL
+                DHM & NDRRMA
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -46,6 +51,7 @@ export default function FloodHazardIndex({
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto overflow-x-auto scrollbar-none">
+          {/* Tab 1: DHM Gauges */}
           <button
             onClick={() => setActiveTab("dhm_gauges")}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
@@ -58,6 +64,23 @@ export default function FloodHazardIndex({
             <span>{t.tabDhmGauges} ({dhmRivers.length || 5})</span>
           </button>
 
+          {/* Tab 2: NDRRMA Live Alerts */}
+          <button
+            onClick={() => setActiveTab("ndrrma_alerts")}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              activeTab === "ndrrma_alerts"
+                ? "bg-[#C51D34] text-white shadow-xs"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <span>{t.tabNdrrmaAlerts} ({ndrrmaAlerts.length || 5})</span>
+            {ndrrmaAlerts.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse ml-0.5" />
+            )}
+          </button>
+
+          {/* Tab 3: Basin Models */}
           <button
             onClick={() => setActiveTab("rivers")}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
@@ -70,6 +93,7 @@ export default function FloodHazardIndex({
             <span>{t.tabBasinModels} ({INITIAL_RIVER_BASINS.length})</span>
           </button>
 
+          {/* Tab 4: Highways */}
           <button
             onClick={() => setActiveTab("highways")}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
@@ -178,7 +202,108 @@ export default function FloodHazardIndex({
         </div>
       )}
 
-      {/* Tab 2: River Basin Models */}
+      {/* Tab 2: NDRRMA Live Alerts */}
+      {activeTab === "ndrrma_alerts" && (
+        <div className="mt-4 space-y-3">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-center justify-between flex-wrap gap-2">
+            <span>{t.ndrrmaSub}</span>
+            <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              {t.ndrrmaConnected}
+            </span>
+          </div>
+
+          {ndrrmaAlerts.length === 0 ? (
+            <div className="p-8 text-center rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-sm">
+              <ShieldAlert className="w-8 h-8 mx-auto mb-2 text-emerald-500 opacity-80" />
+              <p className="font-semibold text-slate-700 dark:text-slate-300">
+                {lang === "np" ? "हाल कुनै सक्रिय विपद् संकट चेतावनी छैन" : "No Critical NDRRMA Disaster Alerts Active"}
+              </p>
+              <p className="text-xs mt-1 text-slate-500">
+                {lang === "np" ? "सबै जिल्लाहरूमा स्थिति सामान्य छ वा अनुगमनमा छ।" : "All districts monitored by BIPAD portal are currently within normal baseline thresholds."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {ndrrmaAlerts.map((alert) => {
+                const titleText = (lang === "np" && alert.titleNe) ? alert.titleNe : alert.title;
+                const formattedDate = new Date(alert.startedOn).toLocaleDateString(
+                  lang === "np" ? "ne-NP" : "en-US",
+                  { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
+                );
+
+                return (
+                  <div
+                    key={alert.id}
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-amber-200 dark:border-amber-900/40 hover:border-amber-400 dark:hover:border-amber-600 transition-colors flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40">
+                          {alert.referenceType || "Hazard Alert"}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                          ID: #{alert.id}
+                        </span>
+                      </div>
+
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">
+                        {titleText}
+                      </h4>
+
+                      {alert.description && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 line-clamp-3 leading-relaxed">
+                          {alert.description}
+                        </p>
+                      )}
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 rounded-lg bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{t.ndrrmaStarted}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">{formattedDate}</span>
+                        </div>
+                        {alert.householdCount !== undefined && alert.householdCount > 0 ? (
+                          <div className="p-2 rounded-lg bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{t.ndrrmaHouseholds}</span>
+                            <span className="font-bold text-red-600 dark:text-red-400 text-xs flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {alert.householdCount}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="p-2 rounded-lg bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{t.ndrrmaType}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] truncate block">
+                              {alert.source || "NDRRMA / DHM"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
+                        <MapPin className="w-3 h-3 text-amber-500" />
+                        {alert.lat.toFixed(2)}°N, {alert.lon.toFixed(2)}°E
+                      </span>
+                      {onSelectAlertFocus && (
+                        <button
+                          onClick={() => onSelectAlertFocus([alert.lat, alert.lon])}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-700 dark:text-amber-300 hover:text-white font-bold text-xs transition-colors flex items-center gap-1"
+                        >
+                          {t.ndrrmaFocusMap}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 3: River Basin Models */}
       {activeTab === "rivers" && (
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {INITIAL_RIVER_BASINS.map((basin) => {

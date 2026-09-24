@@ -3,15 +3,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { DistrictWeatherSummary, BayOfBengalTelemetry } from "@/lib/types";
+import { DistrictWeatherSummary, BayOfBengalTelemetry, NDRRMAAlert } from "@/lib/types";
 import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import { NEPAL_RIVER_SYSTEMS } from "@/data/nepalRivers";
 import { Maximize2, Minimize2, Crosshair, Satellite } from "lucide-react";
 
 interface NepalWeatherMapProps {
   districtsData: DistrictWeatherSummary[];
   dhmRivers?: DHMRiverStation[];
+  ndrrmaAlerts?: NDRRMAAlert[];
   telemetry: BayOfBengalTelemetry;
   activeLayer: MapLayerType;
   timeWindow: ForecastTimeWindow;
@@ -87,6 +89,7 @@ const NEPAL_BORDER_COORDINATES: [number, number][] = [
 export default function NepalWeatherMap({
   districtsData,
   dhmRivers = [],
+  ndrrmaAlerts = [],
   telemetry,
   activeLayer,
   timeWindow,
@@ -108,10 +111,18 @@ export default function NepalWeatherMap({
   const riversLayerRef = useRef<L.LayerGroup | null>(null);
   const stormLayerRef = useRef<L.LayerGroup | null>(null);
   const dhmRadarLayerRef = useRef<L.LayerGroup | null>(null);
+  const ndrrmaLayerRef = useRef<L.LayerGroup | null>(null);
   const borderLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const t = TRANSLATIONS[lang];
+
+  const isDark = theme === "dark";
+  const textPrimary = isDark ? "#f8fafc" : "#0f172a";
+  const textSecondary = isDark ? "#94a3b8" : "#475569";
+  const textMuted = isDark ? "#64748b" : "#64748b";
+  const borderLight = isDark ? "#334155" : "#e2e8f0";
+  const boxBg = isDark ? "#1e293b" : "#f1f5f9";
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -146,6 +157,7 @@ export default function NepalWeatherMap({
     riversLayerRef.current = L.layerGroup().addTo(map);
     stormLayerRef.current = L.layerGroup().addTo(map);
     dhmRadarLayerRef.current = L.layerGroup().addTo(map);
+    ndrrmaLayerRef.current = L.layerGroup().addTo(map);
 
     // Render Nepal National Boundary Polygon
     const borderPolygon = L.polygon(NEPAL_BORDER_COORDINATES, {
@@ -251,14 +263,14 @@ export default function NepalWeatherMap({
 
         const marker = L.marker([radar.lat, radar.lon], { icon: stationIcon });
         marker.bindPopup(`
-          <div style="font-family: inherit; font-size: 12px; color: #f8fafc; padding: 2px;">
-            <div style="font-weight: 800; color: #38bdf8; margin-bottom: 3px;">
+          <div style="font-family: inherit; font-size: 12px; color: ${textPrimary}; padding: 2px; min-width: 190px;">
+            <div style="font-weight: 800; color: #0284c7; margin-bottom: 3px; font-size: 13px;">
               ${lang === "np" ? radar.nepaliName : radar.name}
             </div>
-            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${radar.location}</div>
-            <div style="font-size: 11px; margin-bottom: 4px;"><strong>Range:</strong> 200 km</div>
-            <div style="font-size: 10px; color: #cbd5e1; line-height: 1.4;">${radar.description}</div>
-            <div style="margin-top: 6px; padding: 3px 6px; background: #003893; border-radius: 4px; font-size: 10px; font-weight: bold; text-align: center;">
+            <div style="font-size: 11px; color: ${textSecondary}; margin-bottom: 4px;">${radar.location}</div>
+            <div style="font-size: 11px; color: ${textPrimary}; margin-bottom: 4px;"><strong>Range:</strong> 200 km</div>
+            <div style="font-size: 11px; color: ${textSecondary}; line-height: 1.4;">${radar.description}</div>
+            <div style="margin-top: 6px; padding: 4px 6px; background: ${isDark ? "#003893" : "#dbeafe"}; color: ${isDark ? "#ffffff" : "#1e40af"}; border: 1px solid ${isDark ? "#1e427b" : "#bfdbfe"}; border-radius: 6px; font-size: 10px; font-weight: bold; text-align: center;">
               DHM Official Doppler Radar Station
             </div>
           </div>
@@ -268,7 +280,7 @@ export default function NepalWeatherMap({
         radarGroup.addLayer(marker);
       });
     }
-  }, [activeLayer, lang]);
+  }, [activeLayer, lang, theme]);
 
   // Render Bay of Bengal storm trajectory
   useEffect(() => {
@@ -293,14 +305,14 @@ export default function NepalWeatherMap({
     });
 
     stormMarker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px; color: #fff;">
-        <div style="font-weight: 800; color: #ff4d6d; margin-bottom: 4px; text-transform: uppercase;">
+      <div style="font-family: inherit; font-size: 12px; color: ${textPrimary}; min-width: 190px;">
+        <div style="font-weight: 800; color: #dc2626; margin-bottom: 4px; text-transform: uppercase; font-size: 13px;">
           🌀 Bay of Bengal ${telemetry.systemType}
         </div>
-        <div><strong>Coordinates:</strong> ${telemetry.coordinates.lat}°N, ${telemetry.coordinates.lon}°E</div>
-        <div><strong>Central Pressure:</strong> ${telemetry.centralPressureHpa} hPa</div>
-        <div><strong>Max Winds:</strong> ${telemetry.maxSustainedWindsKmh} km/h</div>
-        <div style="margin-top: 6px; padding: 4px; background: #003893; border-radius: 4px; font-weight: 600;">
+        <div style="color: ${textSecondary}; margin-bottom: 2px;"><strong style="color: ${textPrimary};">Coordinates:</strong> ${telemetry.coordinates.lat}°N, ${telemetry.coordinates.lon}°E</div>
+        <div style="color: ${textSecondary}; margin-bottom: 2px;"><strong style="color: ${textPrimary};">Central Pressure:</strong> ${telemetry.centralPressureHpa} hPa</div>
+        <div style="color: ${textSecondary}; margin-bottom: 2px;"><strong style="color: ${textPrimary};">Max Winds:</strong> ${telemetry.maxSustainedWindsKmh} km/h</div>
+        <div style="margin-top: 6px; padding: 4px 6px; background: ${isDark ? "#003893" : "#fee2e2"}; color: ${isDark ? "#ffffff" : "#991b1b"}; border: 1px solid ${isDark ? "#1e427b" : "#fca5a5"}; border-radius: 6px; font-weight: 700; text-align: center;">
           Distance to Nepal: ~${telemetry.distanceToNepalBorderKm} km
         </div>
       </div>
@@ -333,57 +345,72 @@ export default function NepalWeatherMap({
     riversGroup.clearLayers();
 
     if (activeLayer === "rivers") {
-      const koshiLine = L.polyline(
-        [
-          [27.9, 86.8],
-          [27.3, 87.1],
-          [26.88, 87.15],
-          [26.5, 86.95],
-        ],
-        { color: "#38BDF8", weight: 4, opacity: 0.85 }
-      ).bindPopup("<strong>Koshi Basin</strong> (Chatara)");
+      // 1. Render all 30+ major river systems and tributaries across Nepal
+      NEPAL_RIVER_SYSTEMS.forEach((river) => {
+        const polyline = L.polyline(river.coordinates, {
+          color: river.color,
+          weight: river.weight,
+          opacity: isDark ? 0.85 : 0.9,
+          lineJoin: "round",
+          lineCap: "round",
+        });
 
-      const bagmatiLine = L.polyline(
-        [
-          [27.8, 85.4],
-          [27.68, 85.31],
-          [27.4, 85.25],
-          [27.0, 85.45],
-          [26.7, 85.3],
-        ],
-        { color: "#003893", weight: 4, opacity: 0.85 }
-      ).bindPopup("<strong>Bagmati River Basin</strong>");
+        const riverTitle = lang === "np" ? river.nepaliName : river.name;
+        const basinTitle = lang === "np" ? `${river.basinNepali} जलाधार` : `${river.basin} River Basin`;
 
-      const narayaniLine = L.polyline(
-        [
-          [28.8, 83.8],
-          [28.2, 84.4],
-          [27.9, 84.5],
-          [27.7, 84.42],
-          [27.5, 84.3],
-        ],
-        { color: "#60A5FA", weight: 4, opacity: 0.85 }
-      ).bindPopup("<strong>Narayani / Gandaki Basin</strong>");
+        polyline.bindPopup(`
+          <div style="font-family: inherit; font-size: 13px; color: ${textPrimary}; min-width: 210px; max-width: 270px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="background: ${river.color}22; color: ${river.color}; font-weight: 800; font-size: 9px; padding: 2px 6px; border-radius: 4px; border: 1px solid ${river.color}55; text-transform: uppercase;">
+                ${basinTitle}
+              </span>
+            </div>
+            <div style="font-weight: 800; font-size: 14px; color: ${textPrimary}; border-bottom: 1px solid ${borderLight}; padding-bottom: 4px; margin-bottom: 6px;">
+              ${riverTitle}
+            </div>
+            <div style="font-size: 11px; color: ${textSecondary}; margin-bottom: 4px;">
+              <strong style="color: ${textPrimary};">${lang === "np" ? "मुहान / उद्गम:" : "Origin:"}</strong> ${river.origin}
+            </div>
+            <div style="font-size: 11px; color: ${textSecondary}; line-height: 1.4; margin-bottom: 6px;">
+              ${river.description}
+            </div>
+            <div style="font-size: 10px; color: ${textMuted}; border-top: 1px solid ${borderLight}; padding-top: 4px;">
+              DHM / NDRRMA Nepal Hydrographic Network
+            </div>
+          </div>
+        `);
 
-      const karnaliLine = L.polyline(
-        [
-          [29.8, 81.8],
-          [29.1, 81.6],
-          [28.65, 81.28],
-          [28.3, 81.1],
-        ],
-        { color: "#0284C7", weight: 4, opacity: 0.85 }
-      ).bindPopup("<strong>Karnali River Basin</strong>");
+        polyline.bindTooltip(riverTitle, {
+          sticky: true,
+          className: "river-tooltip",
+        });
 
-      riversGroup.addLayer(koshiLine);
-      riversGroup.addLayer(bagmatiLine);
-      riversGroup.addLayer(narayaniLine);
-      riversGroup.addLayer(karnaliLine);
+        riversGroup.addLayer(polyline);
+      });
 
+      // 2. Render all 100+ DHM / NDRRMA River Monitoring Stations
       dhmRivers.forEach((station) => {
         const isDanger = station.status === "Danger";
         const isWarning = station.status === "Warning";
         const gaugeColor = isDanger ? "#C51D34" : isWarning ? "#F59E0B" : "#10B981";
+
+        const badgeBg = isDanger
+          ? (isDark ? "#7f1d1d" : "#fee2e2")
+          : isWarning
+          ? (isDark ? "#78350f" : "#fef3c7")
+          : (isDark ? "#064e3b" : "#d1fae5");
+
+        const badgeText = isDanger
+          ? (isDark ? "#fca5a5" : "#991b1b")
+          : isWarning
+          ? (isDark ? "#fcd34d" : "#92400e")
+          : (isDark ? "#6ee7b7" : "#065f46");
+
+        const badgeBorder = isDanger
+          ? (isDark ? "#dc2626" : "#f87171")
+          : isWarning
+          ? (isDark ? "#d97706" : "#f59e0b")
+          : (isDark ? "#059669" : "#10b981");
 
         const gaugeIcon = L.divIcon({
           className: "custom-gauge-marker",
@@ -392,7 +419,7 @@ export default function NepalWeatherMap({
               <div class="absolute inset-0 rounded-full" style="background-color: ${gaugeColor}; opacity: 0.5; ${
             isDanger || isWarning ? "animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;" : ""
           }"></div>
-              <div class="relative flex items-center justify-center w-6 h-6 rounded-full border border-white text-white font-black text-[10px]" style="background-color: ${gaugeColor};">
+              <div class="relative flex items-center justify-center w-6 h-6 rounded-full border border-white text-white font-black text-[10px]" style="background-color: ${gaugeColor}; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                 🌊
               </div>
             </div>
@@ -401,24 +428,33 @@ export default function NepalWeatherMap({
 
         const marker = L.marker(station.coordinates, { icon: gaugeIcon });
         marker.bindPopup(`
-          <div style="font-family: inherit; font-size: 13px; color: #fff; min-width: 170px;">
-            <div style="font-weight: 800; font-size: 13px; color: #fff; border-bottom: 1px solid #334155; padding-bottom: 3px; margin-bottom: 5px;">
+          <div style="font-family: inherit; font-size: 13px; color: ${textPrimary}; min-width: 190px; max-width: 250px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 10px; font-weight: 700; color: #0284c7; text-transform: uppercase;">
+                ${station.basin || station.river}
+              </span>
+              ${station.steady ? `<span style="font-size: 9px; font-weight: 700; color: ${textMuted}; background: ${boxBg}; padding: 1px 5px; border-radius: 4px;">${station.steady}</span>` : ""}
+            </div>
+            <div style="font-weight: 800; font-size: 14px; color: ${textPrimary}; border-bottom: 1px solid ${borderLight}; padding-bottom: 4px; margin-bottom: 6px;">
               ${station.name}
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-              <span style="color: #94a3b8;">Current WL:</span>
-              <span style="font-weight: 800; color: ${gaugeColor};">${station.waterLevelM} m</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px;">
+              <span style="color: ${textSecondary};">${lang === "np" ? "हालको जलसतह (WL):" : "Current WL:"}</span>
+              <span style="font-weight: 800; color: ${gaugeColor}; font-size: 13px;">${station.waterLevelM} m</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-              <span style="color: #94a3b8;">Warning WR:</span>
-              <span style="color: #f59e0b; font-weight: 600;">${station.warningLevelM} m</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px;">
+              <span style="color: ${textSecondary};">${lang === "np" ? "चेतावनी तह (WR):" : "Warning WR:"}</span>
+              <span style="color: ${isDark ? "#fcd34d" : "#b45309"}; font-weight: 700;">${station.warningLevelM} m</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-              <span style="color: #94a3b8;">Danger DL:</span>
-              <span style="color: #ef4444; font-weight: 600;">${station.dangerLevelM} m</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
+              <span style="color: ${textSecondary};">${lang === "np" ? "खतरा तह (DL):" : "Danger DL:"}</span>
+              <span style="color: #dc2626; font-weight: 700;">${station.dangerLevelM} m</span>
             </div>
-            <div style="background: ${gaugeColor}22; border: 1px solid ${gaugeColor}; color: #fff; padding: 4px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center;">
+            <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeText}; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin-bottom: 4px;">
               DHM: ${station.status.toUpperCase()}
+            </div>
+            <div style="font-size: 9px; color: ${textMuted}; text-align: right;">
+              Source: DHM / hydrology.gov.np
             </div>
           </div>
         `);
@@ -426,7 +462,7 @@ export default function NepalWeatherMap({
         riversGroup.addLayer(marker);
       });
     }
-  }, [activeLayer, dhmRivers]);
+  }, [activeLayer, dhmRivers, theme, lang]);
 
   // Render District Risk Markers
   useEffect(() => {
@@ -473,31 +509,50 @@ export default function NepalWeatherMap({
 
       const districtDisplayName = lang === "np" ? district.nepaliName : district.districtName;
 
+      const alertBadge =
+        district.alertLevel === "Danger"
+          ? {
+              bg: isDark ? "#7f1d1d" : "#fee2e2",
+              text: isDark ? "#fca5a5" : "#991b1b",
+              border: isDark ? "#dc2626" : "#f87171",
+            }
+          : district.alertLevel === "Warning"
+          ? {
+              bg: isDark ? "#78350f" : "#fef3c7",
+              text: isDark ? "#fcd34d" : "#92400e",
+              border: isDark ? "#d97706" : "#f59e0b",
+            }
+          : {
+              bg: isDark ? "#064e3b" : "#d1fae5",
+              text: isDark ? "#6ee7b7" : "#065f46",
+              border: isDark ? "#059669" : "#10b981",
+            };
+
       const popupHtml = `
-        <div style="font-family: inherit; font-size: 13px; color: #f8fafc; min-width: 170px;">
-          <div style="font-weight: 800; font-size: 14px; color: #ffffff; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px;">
+        <div style="font-family: inherit; font-size: 13px; color: ${textPrimary}; min-width: 180px;">
+          <div style="font-weight: 800; font-size: 14px; color: ${textPrimary}; border-bottom: 1px solid ${borderLight}; padding-bottom: 4px; margin-bottom: 6px;">
             ${districtDisplayName}
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: #94a3b8;">${lang === "np" ? "प्रदेश:" : "Province:"}</span>
-            <span style="font-weight: 600;">${district.provinceName}</span>
+            <span style="color: ${textSecondary};">${lang === "np" ? "प्रदेश:" : "Province:"}</span>
+            <span style="font-weight: 600; color: ${textPrimary};">${district.provinceName}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: #94a3b8;">${timeWindow} ${lang === "np" ? "वर्षा:" : "Rain:"}</span>
+            <span style="color: ${textSecondary};">${timeWindow} ${lang === "np" ? "वर्षा:" : "Rain:"}</span>
             <span style="font-weight: 800; color: ${fillColor}; font-size: 14px;">${rainMm} mm</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span style="color: #94a3b8;">${lang === "np" ? "तापक्रम:" : "Temp:"}</span>
-            <span>${district.current.temperature}°C</span>
+            <span style="color: ${textSecondary};">${lang === "np" ? "तापक्रम:" : "Temp:"}</span>
+            <span style="color: ${textPrimary}; font-weight: 600;">${district.current.temperature}°C</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span style="color: #94a3b8;">${lang === "np" ? "उचाइ:" : "Elevation:"}</span>
-            <span>${district.elevation}m</span>
+            <span style="color: ${textSecondary};">${lang === "np" ? "उचाइ:" : "Elevation:"}</span>
+            <span style="color: ${textPrimary}; font-weight: 600;">${district.elevation}m</span>
           </div>
-          <div style="background: ${fillColor}22; border: 1px solid ${fillColor}; color: #fff; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center;">
+          <div style="background: ${alertBadge.bg}; border: 1px solid ${alertBadge.border}; color: ${alertBadge.text}; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center;">
             ${t.dhmAlert} ${district.alertLevel.toUpperCase()}
           </div>
-          <div style="margin-top: 6px; text-align: center; color: #38bdf8; font-size: 11px; text-decoration: underline; cursor: pointer;">
+          <div style="margin-top: 6px; text-align: center; color: #0284c7; font-size: 11px; font-weight: 600; text-decoration: underline; cursor: pointer;">
             ${lang === "np" ? "७२ घण्टे विस्तृत विवरण हेर्नुहोस् →" : "View 72h detailed forecast →"}
           </div>
         </div>
@@ -507,7 +562,66 @@ export default function NepalWeatherMap({
       circleMarker.on("click", () => onSelectDistrict(district.districtId));
       markersGroup.addLayer(circleMarker);
     });
-  }, [districtsData, timeWindow, selectedDistrictId, onSelectDistrict, lang, t.dhmAlert]);
+  }, [districtsData, timeWindow, selectedDistrictId, onSelectDistrict, lang, t.dhmAlert, theme]);
+
+  // Render NDRRMA Disaster Alerts
+  useEffect(() => {
+    if (!ndrrmaLayerRef.current) return;
+    const alertGroup = ndrrmaLayerRef.current;
+    alertGroup.clearLayers();
+
+    ndrrmaAlerts.forEach((alert) => {
+      if (!alert.lat || !alert.lon) return;
+
+      const title = lang === "np" && alert.titleNe ? alert.titleNe : alert.title;
+      const formattedDate = new Date(alert.startedOn).toLocaleDateString(
+        lang === "np" ? "ne-NP" : "en-US",
+        { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
+      );
+
+      const alertIcon = L.divIcon({
+        className: "custom-ndrrma-marker",
+        html: `
+          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin-left: -14px; margin-top: -14px; cursor: pointer;">
+            <div style="position: absolute; inset: 0; border-radius: 9999px; background-color: #f59e0b; opacity: 0.6; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background-color: #d97706; border: 2px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); color: white; font-size: 11px;">
+              ⚠️
+            </div>
+          </div>
+        `,
+      });
+
+      const marker = L.marker([alert.lat, alert.lon], { icon: alertIcon });
+      marker.bindPopup(`
+        <div style="font-family: inherit; font-size: 13px; color: ${textPrimary}; min-width: 190px; max-width: 250px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <span style="background: ${isDark ? "#78350f" : "#fef3c7"}; color: ${isDark ? "#fcd34d" : "#92400e"}; border: 1px solid ${isDark ? "#d97706" : "#f59e0b"}; font-weight: 800; font-size: 9px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
+              ${alert.referenceType || "NDRRMA"}
+            </span>
+            <span style="font-size: 10px; color: ${textMuted}; font-family: monospace;">#${alert.id}</span>
+          </div>
+          <div style="font-weight: 700; font-size: 13px; color: ${textPrimary}; line-height: 1.3; margin-bottom: 6px;">
+            ${title}
+          </div>
+          <div style="font-size: 11px; color: ${textSecondary}; margin-bottom: 4px;">
+            <strong style="color: ${textPrimary};">${lang === "np" ? "जारी समय:" : "Issued:"}</strong> ${formattedDate}
+          </div>
+          ${
+            alert.householdCount
+              ? `<div style="font-size: 11px; color: #dc2626; font-weight: 700; margin-bottom: 4px;">
+                  ⚠️ ${lang === "np" ? "प्रभावित घरधुरी:" : "Affected Households:"} ${alert.householdCount}
+                </div>`
+              : ""
+          }
+          <div style="font-size: 10px; color: ${textMuted}; border-top: 1px solid ${borderLight}; padding-top: 4px; margin-top: 4px;">
+            Source: ${alert.source || "NDRRMA BIPAD Portal"}
+          </div>
+        </div>
+      `);
+
+      alertGroup.addLayer(marker);
+    });
+  }, [ndrrmaAlerts, lang, theme]);
 
   // Re-center on Nepal
   const handleRecenter = () => {
