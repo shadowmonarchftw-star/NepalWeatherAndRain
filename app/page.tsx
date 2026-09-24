@@ -33,6 +33,9 @@ const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
 });
 
 export default function Home() {
+  // Theme State: Default to Light Mode ("light"), toggleable to Dark Mode ("dark")
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
   // Language State: Defaults to Nepali (np) for local relevance, toggleable to English (en)
   const [lang, setLang] = useState<Language>("np");
 
@@ -42,6 +45,27 @@ export default function Home() {
     () => NEPAL_DISTRICTS.map((d) => generateSynopticFallbackForDistrict(d)),
     []
   );
+
+  // Sync theme with document element & localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("nepal_weather_theme");
+    if (saved === "dark" || saved === "light") {
+      setTheme(saved);
+      document.documentElement.classList.toggle("dark", saved === "dark");
+    } else {
+      // Default to light mode explicitly
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      document.documentElement.classList.toggle("dark", next === "dark");
+      localStorage.setItem("nepal_weather_theme", next);
+      return next;
+    });
+  };
 
   const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>(initialDistricts);
   const [dhmRivers, setDhmRivers] = useState<DHMRiverStation[]>([]);
@@ -212,11 +236,13 @@ export default function Home() {
     : undefined;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0F1A] text-slate-100">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] dark:bg-[#0A0F1A] text-slate-900 dark:text-slate-100 transition-colors">
       {/* 1. Header with Language Switcher & Authentic Flag Accents */}
       <Header
         lang={lang}
         onToggleLang={() => setLang(lang === "en" ? "np" : "en")}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onOpenEmergency={() => setIsEmergencyOpen(true)}
         onRefreshData={refreshWeatherData}
         isRefreshing={isRefreshing}
@@ -290,6 +316,7 @@ export default function Home() {
             mapCenterFocus={mapCenterFocus}
             onOpenSatelliteViewer={() => setIsSatelliteViewerOpen(true)}
             lang={lang}
+            theme={theme}
           />
         </section>
 
@@ -319,7 +346,7 @@ export default function Home() {
       </main>
 
       {/* 8. Footer */}
-      <footer className="border-t border-slate-800 bg-[#080D16] text-slate-400 py-6 mt-8">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#080D16] text-slate-600 dark:text-slate-400 py-6 mt-8 transition-colors">
         <div className="h-1 w-full flex mb-4">
           <div className="h-full w-1/3 bg-[#C51D34]" />
           <div className="h-full w-1/3 bg-[#FFFFFF]" />
@@ -328,16 +355,16 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-white">
+            <span className="font-bold text-slate-900 dark:text-white">
               {lang === "np" ? "नेपाल मौसम तथा वर्षा ट्रयाकर" : "Nepal Weather & Rain Tracker"}
             </span>
             <span>•</span>
             <span>{lang === "np" ? "बाढी पूर्वसूचना प्रणाली" : "Flood Early Warning System"}</span>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap justify-center text-slate-400">
-            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+          <div className="flex items-center gap-4 flex-wrap justify-center text-slate-500 dark:text-slate-400">
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
               {lang === "np" ? "प्रत्येक ५ मिनेटमा अपडेट" : "Live 5-min Auto-sync"}
             </span>
             <span>•</span>

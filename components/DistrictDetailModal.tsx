@@ -66,8 +66,8 @@ export default function DistrictDetailModal({
   const districtDisplayName = lang === "np" ? district.nepaliName : district.districtName;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0F172A] border border-slate-700 text-white shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white shadow-2xl flex flex-col transition-colors">
         {/* Top Flag Stripe */}
         <div className="h-1.5 w-full flex">
           <div className="h-full w-1/3 bg-[#C51D34]" />
@@ -76,24 +76,24 @@ export default function DistrictDetailModal({
         </div>
 
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-800 flex items-start justify-between gap-4 bg-[#0A0F1A]">
+        <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50 dark:bg-[#0A0F1A]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {district.provinceName}
               </span>
-              <span className="text-slate-600">•</span>
-              <span className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span className="text-xs text-blue-600 dark:text-cyan-400 font-semibold flex items-center gap-1">
                 <Waves className="w-3 h-3" />
                 {district.basin} {lang === "np" ? "जलाधार" : "Basin"}
               </span>
             </div>
 
             <div className="flex items-baseline gap-3">
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {districtDisplayName}
               </h2>
-              <span className="text-base font-bold text-slate-400">
+              <span className="text-base font-bold text-slate-500 dark:text-slate-400">
                 {lang === "np" ? district.districtName : district.nepaliName}
               </span>
             </div>
@@ -105,8 +105,8 @@ export default function DistrictDetailModal({
                 isDanger
                   ? "bg-[#C51D34] text-white border-white animate-pulse"
                   : isWarning
-                  ? "bg-amber-500/20 text-amber-300 border-amber-500"
-                  : "bg-slate-800 text-slate-300 border-slate-700"
+                  ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
               }`}
             >
               DHM: {district.alertLevel}
@@ -114,7 +114,7 @@ export default function DistrictDetailModal({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full bg-slate-800 hover:bg-[#C51D34] text-slate-300 hover:text-white transition-all"
+              className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-[#C51D34] text-slate-600 dark:text-slate-300 hover:text-white transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -127,22 +127,22 @@ export default function DistrictDetailModal({
           <div
             className={`p-4 rounded-2xl border flex items-start gap-3.5 ${
               isDanger
-                ? "bg-[#C51D34]/15 border-[#C51D34] text-white"
+                ? "bg-red-50 dark:bg-[#C51D34]/15 border-red-300 dark:border-[#C51D34] text-red-900 dark:text-white"
                 : isWarning
-                ? "bg-amber-500/10 border-amber-500/50 text-amber-100"
-                : "bg-slate-800/60 border-slate-700 text-slate-200"
+                ? "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/50 text-amber-900 dark:text-amber-100"
+                : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
             }`}
           >
             <ShieldAlert
               className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                isDanger ? "text-[#FF4D6D]" : isWarning ? "text-amber-400" : "text-blue-400"
+                isDanger ? "text-[#C51D34] dark:text-[#FF4D6D]" : isWarning ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
               }`}
             />
             <div className="text-xs space-y-1">
               <div className="font-bold text-sm">
                 {t.threatAssessment} {district.primaryThreat}
               </div>
-              <p className="text-slate-300 leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                 {isDanger
                   ? lang === "np"
                     ? "मनसुनी न्यूनचापीय प्रणालीका कारण भारी वर्षाको प्रक्षेपण छ। नदी किनार तथा पहिरोको जोखिम भएका पहाडी भिरालो क्षेत्रबाट तत्काल सतर्क रहन अनुरोध गरिन्छ।"
@@ -160,59 +160,59 @@ export default function DistrictDetailModal({
 
           {/* Key Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 rounded-2xl bg-[#0A0F1A] border border-slate-800">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                 <span>{lang === "np" ? "२४ घण्टे वर्षा" : "24h Rainfall"}</span>
-                <CloudRain className="w-4 h-4 text-[#FF4D6D]" />
+                <CloudRain className="w-4 h-4 text-[#C51D34] dark:text-[#FF4D6D]" />
               </div>
-              <div className="text-2xl font-black text-white tabular-nums">{district.total24hRain} mm</div>
-              <span className="text-[10px] text-slate-400">48h: {district.total48hRain} mm</span>
+              <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{district.total24hRain} mm</div>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">48h: {district.total48hRain} mm</span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#0A0F1A] border border-slate-800">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                 <span>{t.temperature}</span>
-                <Thermometer className="w-4 h-4 text-amber-400" />
+                <Thermometer className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               </div>
-              <div className="text-2xl font-black text-white tabular-nums">
+              <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                 {district.current.temperature}°C
               </div>
-              <span className="text-[10px] text-cyan-300">
+              <span className="text-[10px] text-blue-600 dark:text-cyan-300 font-semibold">
                 {lang === "np" ? weatherState.nepaliDescription : weatherState.description}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#0A0F1A] border border-slate-800">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                 <span>{t.windGusts}</span>
-                <Wind className="w-4 h-4 text-cyan-400" />
+                <Wind className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
               </div>
-              <div className="text-2xl font-black text-white tabular-nums">
+              <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                 {district.current.windGusts} <span className="text-xs font-normal">km/h</span>
               </div>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
                 Speed: {district.current.windSpeed} km/h
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#0A0F1A] border border-slate-800">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs mb-1">
                 <span>{t.pressure}</span>
-                <Gauge className="w-4 h-4 text-emerald-400" />
+                <Gauge className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="text-2xl font-black text-white tabular-nums">
+              <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                 {district.current.surfacePressure} <span className="text-xs font-normal">hPa</span>
               </div>
-              <span className="text-[10px] text-slate-400">{t.elevation}: {district.elevation}m</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.elevation}: {district.elevation}m</span>
             </div>
           </div>
 
           {/* Interactive Recharts Rainfall Profile */}
-          <div className="p-4 rounded-2xl bg-[#0A0F1A] border border-slate-800">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
               <div>
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <CloudRain className="w-4 h-4 text-cyan-400" />
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <CloudRain className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
                   <span>
                     {lang === "np"
                       ? "४८-घण्टे प्रतिघण्टा वर्षा दर तथा संचित वर्षा"
@@ -223,12 +223,12 @@ export default function DistrictDetailModal({
 
               <div className="flex items-center gap-3 text-xs">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-cyan-400" />
-                  <span className="text-slate-300">{t.hourlyRainRate}</span>
+                  <span className="w-3 h-3 rounded bg-blue-500 dark:bg-cyan-400" />
+                  <span className="text-slate-600 dark:text-slate-300">{t.hourlyRainRate}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded bg-[#C51D34]" />
-                  <span className="text-slate-300">{t.cumulativeRain}</span>
+                  <span className="text-slate-600 dark:text-slate-300">{t.cumulativeRain}</span>
                 </div>
               </div>
             </div>
@@ -246,7 +246,7 @@ export default function DistrictDetailModal({
                       <stop offset="95%" stopColor="#C51D34" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#CBD5E1" className="dark:stroke-[#1E293B]" />
                   <XAxis dataKey="hour" stroke="#64748B" fontSize={11} interval={3} />
                   <YAxis stroke="#64748B" fontSize={11} />
                   <Tooltip
@@ -283,8 +283,8 @@ export default function DistrictDetailModal({
 
           {/* 7-Day Forecast Row */}
           <div>
-            <h4 className="text-sm font-bold text-white mb-2.5 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-blue-400" />
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-2.5 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>{t.sevenDayTrend}</span>
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
@@ -297,19 +297,19 @@ export default function DistrictDetailModal({
                 return (
                   <div
                     key={dTime + idx}
-                    className="p-2.5 rounded-xl bg-[#0A0F1A] border border-slate-800 text-center flex flex-col justify-between"
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between"
                   >
-                    <span className="text-[11px] font-bold text-slate-400">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                       {lang === "np" ? `दिन ${idx + 1}` : `Day ${idx + 1}`}
                     </span>
                     <div className="my-1.5">
-                      <CloudRain className="w-5 h-5 mx-auto text-cyan-400 mb-1" />
-                      <div className="font-bold text-xs text-white tabular-nums">
-                        {tempMax}° <span className="text-slate-500 font-normal">{tempMin}°</span>
+                      <CloudRain className="w-5 h-5 mx-auto text-blue-600 dark:text-cyan-400 mb-1" />
+                      <div className="font-bold text-xs text-slate-900 dark:text-white tabular-nums">
+                        {tempMax}° <span className="text-slate-400 dark:text-slate-500 font-normal">{tempMin}°</span>
                       </div>
                     </div>
-                    <div className="text-[10px] text-[#FF4D6D] font-bold tabular-nums">{rainSum} mm</div>
-                    <div className="text-[9px] text-slate-400 tabular-nums">{prob}% prob</div>
+                    <div className="text-[10px] text-[#C51D34] dark:text-[#FF4D6D] font-bold tabular-nums">{rainSum} mm</div>
+                    <div className="text-[9px] text-slate-500 dark:text-slate-400 tabular-nums">{prob}% prob</div>
                   </div>
                 );
               })}
@@ -318,13 +318,13 @@ export default function DistrictDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-[#0A0F1A] flex items-center justify-between">
-          <span className="text-xs text-slate-400">
+        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0A0F1A] flex items-center justify-between">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             Open-Meteo ECMWF / GFS ensemble models
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] text-xs font-bold text-white transition-all"
+            className="px-4 py-2 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] text-xs font-bold text-white transition-all shadow-xs"
           >
             {t.closeForecast}
           </button>

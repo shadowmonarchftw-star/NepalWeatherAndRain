@@ -23,6 +23,7 @@ interface NepalWeatherMapProps {
   mapCenterFocus?: [number, number] | null;
   onOpenSatelliteViewer?: () => void;
   lang?: Language;
+  theme?: "light" | "dark";
 }
 
 // DHM Doppler Weather Radar Stations in Nepal
@@ -97,6 +98,7 @@ export default function NepalWeatherMap({
   mapCenterFocus,
   onOpenSatelliteViewer,
   lang = "en",
+  theme = "light",
 }: NepalWeatherMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -125,14 +127,16 @@ export default function NepalWeatherMap({
 
     L.control.zoom({ position: "topright" }).addTo(map);
 
-    // Initial free basemap: ESRI World Dark Gray Base (watermark-free)
-    const baseLayer = L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-      {
-        attribution: '&copy; <a href="https://www.esri.com/">Esri</a> contributors',
-        maxZoom: 16,
-      }
-    ).addTo(map);
+    // Initial free basemap: ESRI World Light Gray Base (or Dark Gray Base if dark)
+    const initialUrl =
+      theme === "dark"
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+
+    const baseLayer = L.tileLayer(initialUrl, {
+      attribution: '&copy; <a href="https://www.esri.com/">Esri</a> contributors',
+      maxZoom: 16,
+    }).addTo(map);
 
     baseTileLayerRef.current = baseLayer;
 
@@ -161,7 +165,7 @@ export default function NepalWeatherMap({
     };
   }, []);
 
-  // Handle Basemap Switch (Dark, Satellite, OSM)
+  // Handle Basemap Switch (Dark/Light Canvas, Satellite, OSM)
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -170,7 +174,10 @@ export default function NepalWeatherMap({
       baseTileLayerRef.current = null;
     }
 
-    let url = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+    let url =
+      theme === "dark"
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
     let attribution = '&copy; <a href="https://www.esri.com/">Esri</a>';
 
     if (basemap === "satellite" || activeLayer === "satellite") {
@@ -184,7 +191,7 @@ export default function NepalWeatherMap({
     const newBase = L.tileLayer(url, { attribution, maxZoom: 18 });
     newBase.addTo(mapRef.current);
     baseTileLayerRef.current = newBase;
-  }, [basemap, activeLayer]);
+  }, [basemap, activeLayer, theme]);
 
   // Handle programmatic camera focus
   useEffect(() => {
@@ -511,7 +518,7 @@ export default function NepalWeatherMap({
 
   return (
     <div
-      className={`relative w-full rounded-2xl overflow-hidden border border-slate-800 bg-[#080D16] shadow-xl transition-all ${
+      className={`relative w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#080D16] shadow-sm dark:shadow-xl transition-all ${
         isFullscreen ? "fixed inset-0 z-50 rounded-none h-screen" : "h-[470px] sm:h-[570px] lg:h-[640px]"
       }`}
     >
@@ -519,10 +526,10 @@ export default function NepalWeatherMap({
       <div ref={mapContainerRef} className="w-full h-full z-10" />
 
       {/* Floating Map Legend */}
-      <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-[#0F172A]/95 border border-slate-800 backdrop-blur-md shadow-lg text-xs text-white max-w-[210px]">
-        <div className="font-bold text-[10px] uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-800 pb-1 flex items-center justify-between">
+      <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-md text-xs text-slate-800 dark:text-white max-w-[210px] transition-colors">
+        <div className="font-bold text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
           <span>{lang === "np" ? "वर्षा जोखिम" : "Rainfall Risk"} ({timeWindow})</span>
-          <span className="text-[10px] text-blue-400 font-bold">DHM</span>
+          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">DHM</span>
         </div>
         <div className="space-y-1.5 font-medium text-[11px]">
           <div className="flex items-center gap-2">
@@ -549,27 +556,27 @@ export default function NepalWeatherMap({
         {/* Recenter Button */}
         <button
           onClick={handleRecenter}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] border border-slate-800 text-xs font-semibold text-slate-200 shadow-md transition-all active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#0F172A] dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95"
           title={t.recenterNepal}
         >
-          <Crosshair className="w-3.5 h-3.5 text-cyan-400" />
+          <Crosshair className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
           <span className="hidden sm:inline">{t.recenterNepal}</span>
         </button>
 
         {/* Fullscreen Toggle */}
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className="p-1.5 rounded-xl bg-[#0F172A] hover:bg-[#1E293B] border border-slate-800 text-slate-200 shadow-md transition-all active:scale-95"
+          className="p-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#0F172A] dark:hover:bg-[#1E293B] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95"
           title={isFullscreen ? t.exitFullscreen : t.fullscreen}
         >
-          {isFullscreen ? <Minimize2 className="w-4 h-4 text-cyan-400" /> : <Maximize2 className="w-4 h-4" />}
+          {isFullscreen ? <Minimize2 className="w-4 h-4 text-blue-600 dark:text-cyan-400" /> : <Maximize2 className="w-4 h-4" />}
         </button>
 
         {/* INSAT-3D Satellite Launcher */}
         {onOpenSatelliteViewer && (
           <button
             onClick={onOpenSatelliteViewer}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] border border-white/20 text-xs font-bold text-white shadow-md transition-all active:scale-95"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] border border-white/20 text-xs font-bold text-white shadow-xs transition-all active:scale-95"
           >
             <Satellite className="w-3.5 h-3.5" />
             <span>INSAT-3D</span>
@@ -578,10 +585,10 @@ export default function NepalWeatherMap({
       </div>
 
       {/* Trajectory pill */}
-      <div className="absolute top-4 left-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#0F172A]/95 border border-slate-800 text-[11px] text-white backdrop-blur-md">
+      <div className="absolute top-4 left-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 dark:bg-[#0F172A]/95 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-white backdrop-blur-md shadow-xs">
         <span className="w-2 h-2 rounded-full bg-[#C51D34] animate-pulse" />
-        <span className="font-bold text-[#FF4D6D]">{lang === "np" ? "प्रवाह दिशा:" : "Trajectory:"}</span>
-        <span className="text-slate-300">Bay of Bengal &rarr; Koshi & Bagmati</span>
+        <span className="font-bold text-[#C51D34] dark:text-[#FF4D6D]">{lang === "np" ? "प्रवाह दिशा:" : "Trajectory:"}</span>
+        <span className="text-slate-600 dark:text-slate-300">Bay of Bengal &rarr; Koshi & Bagmati</span>
       </div>
     </div>
   );

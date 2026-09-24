@@ -19,7 +19,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0A0F1A",
+  themeColor: "#FFFFFF",
 };
 
 export const metadata: Metadata = {
@@ -47,9 +47,9 @@ export default function RootLayout({
   return (
     <html
       lang="ne"
-      className={`${inter.variable} ${devanagari.variable} dark h-full`}
+      className={`${inter.variable} ${devanagari.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col bg-[#0A0F1A] text-slate-100 font-sans selection:bg-[#DC143C] selection:text-white">
+      <body className="min-h-full flex flex-col font-sans selection:bg-[#DC143C] selection:text-white">
         {children}
       </body>
     </html>

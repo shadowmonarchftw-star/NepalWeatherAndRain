@@ -44,13 +44,13 @@ export default function MapControls({
   const t = TRANSLATIONS[lang];
 
   return (
-    <div className="flex flex-col gap-2.5 p-3 sm:p-4 rounded-2xl bg-[#0F172A] border border-slate-800 shadow-md text-white">
+    <div className="flex flex-col gap-2.5 p-3 sm:p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-md text-slate-800 dark:text-white transition-colors">
       {/* Top Row: Layer Tabs & Basemap Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         {/* Layer Switcher Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1 flex-shrink-0">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1 flex-shrink-0">
+            <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
             <span>{t.mapLayers}</span>
           </span>
 
@@ -59,8 +59,8 @@ export default function MapControls({
             onClick={() => onChangeLayer("precipitation")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
               activeLayer === "precipitation"
-                ? "bg-[#C51D34] text-white border-white/20 shadow-sm"
-                : "bg-[#162035] text-slate-300 hover:text-white border-slate-800 hover:bg-[#1E293B]"
+                ? "bg-[#C51D34] text-white border-white/20 shadow-xs"
+                : "bg-slate-100 dark:bg-[#162035] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
             }`}
           >
             <CloudRain className="w-3.5 h-3.5" />
@@ -72,8 +72,8 @@ export default function MapControls({
             onClick={() => onChangeLayer("radar")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
               activeLayer === "radar"
-                ? "bg-[#003893] text-white border-cyan-400 shadow-sm"
-                : "bg-[#162035] text-slate-300 hover:text-white border-slate-800 hover:bg-[#1E293B]"
+                ? "bg-[#003893] text-white border-blue-400 shadow-xs"
+                : "bg-slate-100 dark:bg-[#162035] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
             }`}
           >
             <Radio className="w-3.5 h-3.5 text-cyan-300" />
@@ -86,8 +86,8 @@ export default function MapControls({
             onClick={() => onChangeLayer("satellite")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
               activeLayer === "satellite"
-                ? "bg-[#003893] text-white border-cyan-400 shadow-sm"
-                : "bg-[#162035] text-slate-300 hover:text-white border-slate-800 hover:bg-[#1E293B]"
+                ? "bg-[#003893] text-white border-blue-400 shadow-xs"
+                : "bg-slate-100 dark:bg-[#162035] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
             }`}
           >
             <Satellite className="w-3.5 h-3.5 text-amber-300" />
@@ -99,19 +99,19 @@ export default function MapControls({
             onClick={() => onChangeLayer("rivers")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
               activeLayer === "rivers"
-                ? "bg-[#003893] text-white border-cyan-400 shadow-sm"
-                : "bg-[#162035] text-slate-300 hover:text-white border-slate-800 hover:bg-[#1E293B]"
+                ? "bg-[#003893] text-white border-blue-400 shadow-xs"
+                : "bg-slate-100 dark:bg-[#162035] text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-[#1E293B]"
             }`}
           >
-            <Waves className="w-3.5 h-3.5 text-cyan-400" />
+            <Waves className="w-3.5 h-3.5 text-blue-500 dark:text-cyan-400" />
             <span>{t.layerRivers}</span>
           </button>
         </div>
 
         {/* Basemap Switcher */}
-        <div className="flex items-center gap-1 bg-[#0A0F1A] p-1 rounded-xl border border-slate-800 self-start lg:self-auto">
-          <MapIcon className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-0.5" />
-          <span className="text-[10px] uppercase font-bold text-slate-400 mr-1 hidden sm:inline">{t.basemap}</span>
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start lg:self-auto">
+          <MapIcon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ml-1.5 mr-0.5" />
+          <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mr-1 hidden sm:inline">{t.basemap}</span>
           {(
             [
               { id: "dark", label: t.bmDark },
@@ -124,8 +124,8 @@ export default function MapControls({
               onClick={() => onChangeBasemap(b.id)}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                 basemap === b.id
-                  ? "bg-[#003893] text-white border border-cyan-400 shadow-sm"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#003893] text-white border border-blue-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {b.label}
@@ -135,19 +135,19 @@ export default function MapControls({
       </div>
 
       {/* Sub-Row Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/80">
         {activeLayer === "precipitation" ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-300 font-medium">{t.period}</span>
-            <div className="flex items-center gap-1 bg-[#0A0F1A] p-0.5 rounded-lg border border-slate-800">
+            <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">{t.period}</span>
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-0.5 rounded-lg border border-slate-200 dark:border-slate-800">
               {(["24h", "48h", "72h"] as ForecastTimeWindow[]).map((win) => (
                 <button
                   key={win}
                   onClick={() => onChangeTimeWindow(win)}
                   className={`px-2.5 py-0.5 rounded-md text-xs font-bold transition-all ${
                     timeWindow === win
-                      ? "bg-[#C51D34] text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-[#C51D34] text-white shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   {win}
@@ -159,7 +159,7 @@ export default function MapControls({
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
             <button
               onClick={onToggleRadarPlay}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#C51D34] text-white hover:bg-[#A8152A] transition-all text-xs font-bold shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#C51D34] text-white hover:bg-[#A8152A] transition-all text-xs font-bold shadow-xs"
             >
               {isPlayingRadar ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
               <span>{isPlayingRadar ? t.pause : t.play}</span>
@@ -173,9 +173,9 @@ export default function MapControls({
                   max={Math.max(0, totalRadarFrames - 1)}
                   value={radarFrameIndex}
                   onChange={(e) => onChangeRadarFrame(parseInt(e.target.value, 10))}
-                  className="w-28 sm:w-36 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#C51D34]"
+                  className="w-28 sm:w-36 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#C51D34]"
                 />
-                <span className="font-mono text-[11px] text-cyan-300 font-semibold tabular-nums">
+                <span className="font-mono text-[11px] text-blue-700 dark:text-cyan-300 font-semibold tabular-nums">
                   {currentRadarTime || t.liveRadarLoop}
                 </span>
               </>
@@ -183,25 +183,25 @@ export default function MapControls({
           </div>
         ) : activeLayer === "satellite" ? (
           <div className="flex items-center gap-3 w-full justify-between">
-            <span className="text-xs text-slate-300">
+            <span className="text-xs text-slate-600 dark:text-slate-300">
               {lang === "np" ? "नेपाल तथा बंगालको खाडी उपग्रह दृश्य" : "Regional high-resolution satellite imagery"}
             </span>
             <button
               onClick={onOpenSatelliteViewer}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] text-xs font-bold text-white shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#C51D34] hover:bg-[#A8152A] text-xs font-bold text-white shadow-xs transition-all"
             >
               <Satellite className="w-3.5 h-3.5" />
               <span>{t.openSatelliteModal}</span>
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse mr-1" />
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mr-1" />
             <span>{t.sensorSource}</span>
           </div>
         )}
 
-        <div className="text-[11px] text-emerald-400 font-semibold hidden sm:flex items-center gap-1">
+        <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hidden sm:flex items-center gap-1">
           <span>✓ {t.freeBasemaps}</span>
         </div>
       </div>
