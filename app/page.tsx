@@ -406,6 +406,7 @@ export default function Home() {
       <LiveSatelliteModal
         isOpen={isSatelliteViewerOpen}
         onClose={() => setIsSatelliteViewerOpen(false)}
+        lang={lang}
       />
     </div>
   );
