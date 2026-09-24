@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🇳🇵 Nepal Weather & Bay of Bengal Rain Tracker
+### नेपाल मौसम, वर्षा तथा बाढी पूर्वसूचना प्रणाली
 
-## Getting Started
+A production-ready meteorological web application built to monitor cyclonic systems, depressions, and monsoon low-pressure areas forming in the **Bay of Bengal** and track rainfall accumulation, river discharge, and landslide hazards across all **7 provinces and 77 districts of Nepal**.
 
-First, run the development server:
+Engineered with a **Nepal National Flag Theme** (Crimson Red `#DC143C`, Deep Royal Blue `#003893`, and Pure White `#FFFFFF`).
+
+---
+
+## 🌟 Key Features
+
+1. **🌀 Bay of Bengal Synoptic System Tracker**
+   * Real-time depression classification, central barometric pressure (hPa), maximum wind gusts, and movement vector.
+   * Proximity tracking indicating distance and travel time of moisture fronts entering Eastern Nepal (Jhapa / Biratnagar / Koshi Basin).
+   * Synoptic explanation of the Himalayan orographic lift effect.
+
+2. **🗺️ Interactive Nepal Meteorological Radar Map**
+   * High-contrast CartoDB Dark Matter basemap centered on Nepal and expandable to the Bay of Bengal.
+   * **Live RainViewer Radar Layer**: Scrubbable and animated weather radar loop showing real-time rain clouds.
+   * **Satellite Cloud Cover Layer**: South Asia regional infrared cloud imagery.
+   * **District Risk Choropleth**: Color-coded risk markers for all 77 districts based on 24h, 48h, and 72h forecasted precipitation.
+   * **River Basins Overlay**: Major river paths (Koshi, Bagmati, Narayani/Gandaki, Karnali).
+
+3. **🌊 River Basin Flood Hazard Index & Highway Advisories**
+   * Real-time risk categorization for key basins: **Koshi Basin**, **Bagmati River Basin**, **Gandaki/Narayani Basin**, **Terai Flash-Flood Streams**, and **Karnali Basin**.
+   * Department of Hydrology & Meteorology (DHM) aligned alert thresholds (🟢 Normal, 🟡 Watch, 🟠 Warning, 🔴 Extreme Danger).
+   * Highway vulnerability status for **Prithvi Highway**, **Narayanghat-Mugling Highway**, and **BP Highway**.
+
+4. **📊 77-District Rain Explorer & 48-Hour Hourly Profile**
+   * Fast fuzzy search and province filter tabs across all 77 districts.
+   * Click any district to open the detailed forecast drawer with **Recharts hourly rainfall intensity (mm/hr) and cumulative accumulation (mm)** curves.
+   * 7-day extended synoptic trend with temperature, humidity, surface pressure, and rain probabilities.
+
+5. **🚨 Emergency Hotline & Public Safety Center**
+   * One-tap phone links to DHM Flood Toll-Free (`1155`), Nepal Police (`100`), Armed Police Force Disaster Management (`1114`), Ambulance (`1130`), and Highway Police (`103`).
+   * Essential flash flood, cloudburst, and landslide safety checklists.
+
+---
+
+## 🆓 100% Free & Open Resources (Zero API Keys Required)
+
+* **Open-Meteo API**: Global ECMWF & GFS ensemble models providing hourly precipitation, wind gusts, and pressure with **no API key and no credit card required**.
+* **RainViewer API**: Public radar and satellite tile feeds for animated live radar loops.
+* **CartoDB & OpenStreetMap**: Free dark-mode map tiles for Leaflet.
+* **Vercel**: Deployable on Vercel's free Hobby plan with zero configuration.
+
+---
+
+## 🚀 How to Run Locally
 
 ```bash
+# Navigate to the project directory
+cd nepal-weather-tracker
+
+# Install dependencies (already installed)
+npm install
+
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 How to Push to GitHub and Deploy to Vercel
 
-## Learn More
+### Step 1: Create a GitHub Repository
+1. Go to [github.com/new](https://github.com/new).
+2. Name your repository (e.g. `nepal-weather-tracker`).
+3. Leave "Initialize with a README" unchecked (since we already have one).
+4. Click **Create repository**.
 
-To learn more about Next.js, take a look at the following resources:
+### Step 2: Push Your Local Code to GitHub
+Run the following commands in your terminal inside `/Users/success/nepal-weather-tracker`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Add all files to git
+git add .
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Commit your changes
+git commit -m "Initial commit: Nepal Weather & Bay of Bengal Rain Tracker"
 
-## Deploy on Vercel
+# Set default branch to main
+git branch -M main
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Link your local repo to your GitHub repo (replace with your GitHub URL)
+git remote add origin https://github.com/YOUR_USERNAME/nepal-weather-tracker.git
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Push to GitHub
+git push -u origin main
+```
+
+### Step 3: Deploy to Vercel (1-Click)
+1. Go to [vercel.com](https://vercel.com) and log in with your GitHub account.
+2. Click **"Add New..."** &rarr; **"Project"**.
+3. Select your `nepal-weather-tracker` repository from the list.
+4. Leave all settings at default (Vercel automatically detects Next.js).
+5. Click **"Deploy"**.
+
+Your live website will be generated and available on a free `*.vercel.app` domain with automatic HTTPS in less than 60 seconds!
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework**: Next.js 15+ (App Router)
+* **Language**: TypeScript
+* **Styling**: Tailwind CSS v4 (Nepal Flag Palette: Crimson `#DC143C`, Navy Blue `#003893`, Pure White)
+* **Interactive Maps**: Leaflet.js (CartoDB Dark Matter basemap)
+* **Charts**: Recharts (48-hour hourly curves & cumulative precipitation)
+* **Icons**: Lucide React
+* **Weather Data**: Open-Meteo & RainViewer

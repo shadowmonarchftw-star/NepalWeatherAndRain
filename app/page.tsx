@@ -1,69 +1,243 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
+import Header from "@/components/Header";
+import BayOfBengalTracker from "@/components/BayOfBengalTracker";
+import MapControls, { MapLayerType, ForecastTimeWindow } from "@/components/MapControls";
+import FloodHazardIndex from "@/components/FloodHazardIndex";
+import DistrictSelector from "@/components/DistrictSelector";
+import DistrictDetailModal from "@/components/DistrictDetailModal";
+import EmergencyModal from "@/components/EmergencyModal";
+import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
+import { DistrictWeatherSummary, RainViewerData } from "@/lib/types";
+import { generateSynopticFallbackForDistrict, getBayOfBengalTelemetry } from "@/lib/openMeteo";
+
+// Dynamically import Leaflet Map with SSR disabled
+const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[500px] rounded-2xl bg-[#060E1D] border-2 border-[#003893] flex flex-col items-center justify-center text-blue-200">
+      <div className="w-10 h-10 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mb-3" />
+      <span className="text-sm font-semibold tracking-wide">
+        Loading Nepal Meteorological Map & Radar...
+      </span>
+    </div>
+  ),
+});
 
 export default function Home() {
+  // Telemetry & Districts
+  const telemetry = useMemo(() => getBayOfBengalTelemetry(), []);
+  const initialDistricts = useMemo(
+    () => NEPAL_DISTRICTS.map((d) => generateSynopticFallbackForDistrict(d)),
+    []
+  );
+
+  const [districtsData, setDistrictsData] = useState<DistrictWeatherSummary[]>(initialDistricts);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
+  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Map Controls State
+  const [activeLayer, setActiveLayer] = useState<MapLayerType>("precipitation");
+  const [timeWindow, setTimeWindow] = useState<ForecastTimeWindow>("24h");
+  const [mapCenterFocus, setMapCenterFocus] = useState<[number, number] | null>(null);
+
+  // RainViewer Radar State
+  const [radarData, setRadarData] = useState<RainViewerData | null>(null);
+  const [radarFrameIndex, setRadarFrameIndex] = useState(0);
+  const [isPlayingRadar, setIsPlayingRadar] = useState(true);
+
+  // Fetch live RainViewer radar timestamps on load
+  useEffect(() => {
+    async function loadRadar() {
+      try {
+        const res = await fetch("/api/radar");
+        if (res.ok) {
+          const data = await res.json();
+          setRadarData(data);
+          if (data.radarPast?.length) {
+            setRadarFrameIndex(data.radarPast.length - 1);
+          }
+        }
+      } catch (err) {
+        console.warn("Using offline radar configuration", err);
+      }
+    }
+    loadRadar();
+  }, []);
+
+  // Radar playback loop
+  useEffect(() => {
+    if (!isPlayingRadar || activeLayer !== "radar" || !radarData?.radarPast?.length) return;
+
+    const timer = setInterval(() => {
+      setRadarFrameIndex((prev) => (prev + 1) % radarData.radarPast.length);
+    }, 900);
+
+    return () => clearInterval(timer);
+  }, [isPlayingRadar, activeLayer, radarData]);
+
+  // Fetch live weather data for key cities in background
+  const refreshWeatherData = async () => {
+    setIsRefreshing(true);
+    try {
+      // Refresh sample key cities directly from Open-Meteo
+      const keyCityIds = ["kathmandu", "morang", "kaski", "chitwan", "jhapa", "dhanusha"];
+      const updatedList = [...districtsData];
+
+      for (const cityId of keyCityIds) {
+        try {
+          const res = await fetch(`/api/weather?districtId=${cityId}`);
+          if (res.ok) {
+            const data: DistrictWeatherSummary = await res.json();
+            const idx = updatedList.findIndex((d) => d.districtId === cityId);
+            if (idx !== -1) {
+              updatedList[idx] = data;
+            }
+          }
+        } catch {
+          // ignore individual fetch errors
+        }
+      }
+      setDistrictsData(updatedList);
+    } catch (err) {
+      console.error("Refresh error", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Focus map onto Eastern Nepal (first impact point of Bay of Bengal)
+  const handleFocusEasternNepal = () => {
+    setMapCenterFocus([26.9, 87.4]);
+  };
+
+  // Find currently selected district for modal
+  const selectedDistrict = useMemo(() => {
+    if (!selectedDistrictId) return null;
+    return districtsData.find((d) => d.districtId === selectedDistrictId) || null;
+  }, [selectedDistrictId, districtsData]);
+
+  // Current radar frame path
+  const currentRadarPath = radarData?.radarPast?.[radarFrameIndex]?.path;
+  const currentSatellitePath = radarData?.satellite?.[0]?.path;
+  const currentRadarTime = radarData?.radarPast?.[radarFrameIndex]
+    ? new Date(radarData.radarPast[radarFrameIndex].time * 1000).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Kathmandu",
+      }) + " NPT"
+    : undefined;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen flex flex-col bg-[#050D1A] text-white">
+      {/* 1. Header with Flag Theme & Live Ticker */}
+      <Header
+        onOpenEmergency={() => setIsEmergencyOpen(true)}
+        onRefreshData={refreshWeatherData}
+        isRefreshing={isRefreshing}
+      />
+
+      {/* Main Content Dashboard */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* 2. Bay of Bengal Synoptic Depression Tracker */}
+        <section>
+          <BayOfBengalTracker
+            telemetry={telemetry}
+            onFocusEasternNepal={handleFocusEasternNepal}
+          />
+        </section>
+
+        {/* 3. Interactive Map & Layer Controls */}
+        <section className="space-y-3">
+          <MapControls
+            activeLayer={activeLayer}
+            onChangeLayer={setActiveLayer}
+            timeWindow={timeWindow}
+            onChangeTimeWindow={setTimeWindow}
+            isPlayingRadar={isPlayingRadar}
+            onToggleRadarPlay={() => setIsPlayingRadar(!isPlayingRadar)}
+            radarFrameIndex={radarFrameIndex}
+            totalRadarFrames={radarData?.radarPast?.length || 0}
+            onChangeRadarFrame={setRadarFrameIndex}
+            currentRadarTime={currentRadarTime}
+          />
+
+          <NepalWeatherMap
+            districtsData={districtsData}
+            telemetry={telemetry}
+            activeLayer={activeLayer}
+            timeWindow={timeWindow}
+            radarHost={radarData?.host}
+            radarPath={currentRadarPath}
+            satellitePath={currentSatellitePath}
+            selectedDistrictId={selectedDistrictId || undefined}
+            onSelectDistrict={(id) => setSelectedDistrictId(id)}
+            mapCenterFocus={mapCenterFocus}
+          />
+        </section>
+
+        {/* 4. River Basin Flood Hazard Index & Highway Travel Advisories */}
+        <section>
+          <FloodHazardIndex
+            onSelectBasinFocus={(basinId) => {
+              if (basinId.includes("koshi")) setMapCenterFocus([27.0, 87.2]);
+              else if (basinId.includes("bagmati")) setMapCenterFocus([27.7, 85.3]);
+              else if (basinId.includes("gandaki")) setMapCenterFocus([28.1, 84.2]);
+              else if (basinId.includes("karnali")) setMapCenterFocus([29.1, 81.8]);
+            }}
+          />
+        </section>
+
+        {/* 5. 77 Districts Rain & Forecast Explorer */}
+        <section>
+          <DistrictSelector
+            districts={districtsData}
+            selectedDistrictId={selectedDistrictId || undefined}
+            onSelectDistrict={(id) => setSelectedDistrictId(id)}
+          />
+        </section>
       </main>
+
+      {/* 6. Footer */}
+      <footer className="border-t border-[#003893] bg-[#030914] text-white py-8 mt-12">
+        {/* Flag Color Stripe */}
+        <div className="h-1 w-full flex mb-6">
+          <div className="h-full w-1/3 bg-[#DC143C]" />
+          <div className="h-full w-1/3 bg-[#FFFFFF]" />
+          <div className="h-full w-1/3 bg-[#003893]" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-blue-300">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-white">Nepal Weather & Rain Tracker</span>
+            <span>•</span>
+            <span>नेपाल मौसम तथा बाढी पूर्वसूचना प्रणाली</span>
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <span>Data: Open-Meteo & RainViewer (100% Free)</span>
+            <span>•</span>
+            <span>Thresholds: DHM Nepal Standards</span>
+            <span>•</span>
+            <span className="text-emerald-400 font-semibold">Vercel Ready</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* 7. District Detailed 72h Forecast Modal */}
+      <DistrictDetailModal
+        district={selectedDistrict}
+        onClose={() => setSelectedDistrictId(null)}
+      />
+
+      {/* 8. Emergency Hotlines Modal */}
+      <EmergencyModal
+        isOpen={isEmergencyOpen}
+        onClose={() => setIsEmergencyOpen(false)}
+      />
     </div>
   );
 }
