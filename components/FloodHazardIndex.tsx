@@ -118,7 +118,7 @@ export default function FloodHazardIndex({
   return (
     <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 shadow-sm dark:shadow-lg text-slate-900 dark:text-white transition-colors">
       {/* Header & Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2.5 sm:gap-3">
           <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-50 dark:bg-[#162035] border border-cyan-200 dark:border-slate-700 text-blue-600 dark:text-cyan-400 flex-shrink-0">
             <Waves className="w-5 h-5" />
@@ -139,7 +139,7 @@ export default function FloodHazardIndex({
         </div>
 
         {/* Tab Switcher - Horizontal Scroll on Mobile */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto overflow-x-auto scrollbar-none max-w-full">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start max-w-full">
           {/* Tab 1: DHM Gauges */}
           <button
             onClick={() => setActiveTab("dhm_gauges")}

@@ -96,7 +96,7 @@ export default function ObservedConditions({
               : "Not a forecast — government sensor readings and reports (NDRRMA BIPAD)"}
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto overflow-x-auto scrollbar-none max-w-full">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto max-w-full">
           {tabBtn("rain", <Gauge className="w-3.5 h-3.5" />, `${np ? "वर्षा" : "Rainfall"} (${rainStations.length})`)}
           {tabBtn("aqi", <Wind className="w-3.5 h-3.5" />, `${np ? "वायु गुणस्तर" : "Air Quality"} (${aqiStations.length})`)}
           {tabBtn("incidents", <Siren className="w-3.5 h-3.5" />, `${np ? "घटना" : "Incidents"} (${incidents.length})`)}
