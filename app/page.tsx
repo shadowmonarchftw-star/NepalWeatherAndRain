@@ -100,7 +100,7 @@ export default function Home() {
   // Map Controls State
   const [activeLayer, setActiveLayer] = useState<MapLayerType>("precipitation");
   const [timeWindow, setTimeWindow] = useState<ForecastTimeWindow>("24h");
-  const [basemap, setBasemap] = useState<BasemapType>("dark");
+  const [basemap, setBasemap] = useState<BasemapType>("osm");
   const [mapCenterFocus, setMapCenterFocus] = useState<[number, number] | null>(null);
 
   // RainViewer Radar State

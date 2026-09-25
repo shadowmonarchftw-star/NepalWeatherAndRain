@@ -48,7 +48,7 @@ export default function MapControls({
       {/* Top Row: Layer Tabs & Basemap Switcher */}
       <div className="flex flex-col gap-2.5 sm:gap-3">
         {/* Layer Switcher Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap sm:overflow-visible scrollbar-none -mx-1 px-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mr-0.5 sm:mr-1 flex items-center gap-1 flex-shrink-0">
             <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
             <span className="hidden xs:inline">{t.mapLayers}</span>
