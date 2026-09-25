@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { FileText, ExternalLink } from "lucide-react";
 import { Language } from "@/lib/translations";
+import SourceTag from "@/components/SourceTag";
 
 interface DhmForecast {
   issuedAt: string;
@@ -70,9 +71,19 @@ export default function DhmForecastCard({ lang = "en", refreshKey = 0 }: { lang?
             {np ? "DHM आधिकारिक मौसम पूर्वानुमान" : "Official DHM Weather Forecast"}
           </h3>
         </div>
-        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          {forecast ? `${np ? "जारी" : "Issued"} ${issued} NPT` : ""}
-        </span>
+        {forecast && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <SourceTag
+              kind="official"
+              label={np ? "आधिकारिक पूर्वानुमान" : "Official forecast"}
+              source="DHM"
+              time={forecast.issuedAt}
+              timeVerb="issued"
+              lang={lang}
+            />
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">{issued} NPT</span>
+          </div>
+        )}
       </div>
 
       {failed && (

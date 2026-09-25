@@ -23,6 +23,7 @@ import {
 import { DistrictWeatherSummary, DHMRainStation } from "@/lib/types";
 import { interpretWmoCode } from "@/lib/alertCalculator";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import SourceTag from "@/components/SourceTag";
 
 interface DistrictDetailModalProps {
   district: DistrictWeatherSummary | null;
@@ -99,6 +100,7 @@ export default function DistrictDetailModal({
                 {lang === "np" ? district.districtName : district.nepaliName}
               </span>
             </div>
+            <SourceTag kind="model" source="Open-Meteo" lang={lang} className="mt-1" />
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">

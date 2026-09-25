@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Search, MapPin, CloudRain, Mountain, Gauge } from "lucide-react";
 import { DistrictWeatherSummary, ObservedDistrictRain } from "@/lib/types";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import SourceTag from "@/components/SourceTag";
 
 interface DistrictSelectorProps {
   districts: DistrictWeatherSummary[];
@@ -65,6 +66,7 @@ export default function DistrictSelector({
           <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
             {t.explorerSubtitle}
           </p>
+          <SourceTag kind="model" source="Open-Meteo" lang={lang} className="mt-1" />
         </div>
 
         {/* Search input */}

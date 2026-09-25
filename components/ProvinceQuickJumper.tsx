@@ -4,6 +4,7 @@ import React from "react";
 import { NEPAL_PROVINCES } from "@/data/nepalProvinces";
 import { DistrictWeatherSummary } from "@/lib/types";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import SourceTag from "@/components/SourceTag";
 
 interface ProvinceQuickJumperProps {
   districts: DistrictWeatherSummary[];
@@ -29,6 +30,8 @@ export default function ProvinceQuickJumper({
   });
 
   return (
+    <div>
+      <SourceTag kind="model" source="Open-Meteo" lang={lang} />
     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none py-1">
       {/* All Nepal Button */}
       <button
@@ -79,6 +82,7 @@ export default function ProvinceQuickJumper({
           </button>
         );
       })}
+    </div>
     </div>
   );
 }

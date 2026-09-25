@@ -4,6 +4,7 @@ import React from "react";
 import { MapPin } from "lucide-react";
 import { DhmCityWeather as City } from "@/app/api/dhm-cities/route";
 import { Language } from "@/lib/translations";
+import SourceTag from "@/components/SourceTag";
 
 interface Props {
   cities: City[];
@@ -19,16 +20,6 @@ const PERIOD = {
   tomorrow: { en: "Tomorrow", np: "भोलि" },
 };
 
-const fmt = (iso: string | null, lang: Language) =>
-  iso
-    ? new Date(iso).toLocaleString(lang === "np" ? "ne-NP" : "en-US", {
-        timeZone: "Asia/Kathmandu",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "—";
 
 export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssuedAt, onFocus, lang = "en" }: Props) {
   const np = lang === "np";
@@ -40,9 +31,17 @@ export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssue
         <h3 className="text-sm sm:text-base font-bold tracking-tight">
           {np ? "DHM सहर पूर्वानुमान तथा मापन" : "DHM City Forecasts & Observations"}
         </h3>
-        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-          {np ? "पूर्वानुमान जारी" : "Forecast issued"} {fmt(forecastIssuedAt, lang)} · {np ? "मापन" : "Observed"} {fmt(observedIssuedAt, lang)} NPT
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <SourceTag
+            kind="official"
+            label={np ? "आधिकारिक पूर्वानुमान" : "Official forecast"}
+            source="DHM"
+            time={forecastIssuedAt}
+            timeVerb="issued"
+            lang={lang}
+          />
+          <SourceTag kind="measured" source="DHM" time={observedIssuedAt} lang={lang} />
+        </div>
       </div>
 
       {cities.length === 0 ? (

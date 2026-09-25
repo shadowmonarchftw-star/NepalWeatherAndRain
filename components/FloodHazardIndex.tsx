@@ -18,6 +18,7 @@ import { basinRainNear, BASIN_RAIN_RADIUS_KM } from "@/lib/observedRain";
 import { HistoryTarget } from "@/components/StationHistoryModal";
 import { RoadStatus } from "@/app/api/roads/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import SourceTag, { latestTime } from "@/components/SourceTag";
 
 const RISING_WATCH_MARGIN_M = 1.0;
 
@@ -124,17 +125,29 @@ export default function FloodHazardIndex({
             <Waves className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                {t.dhmTelemetryTitle}
-              </h3>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/40">
-                DHM & NDRRMA
-              </span>
-            </div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
+              {t.dhmTelemetryTitle}
+            </h3>
             <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
               {t.dhmGovNepal}
             </p>
+            {(activeTab === "dhm_gauges" || activeTab === "rivers") && (
+              <SourceTag kind="measured" source="DHM" time={latestTime(dhmRivers.map((r) => r.waterLevelOn))} lang={lang} className="mt-1" />
+            )}
+            {activeTab === "ndrrma_alerts" && (
+              <SourceTag
+                kind="official"
+                label={lang === "np" ? "आधिकारिक पूर्वसूचना" : "Official alerts"}
+                source="NDRRMA"
+                time={latestTime(ndrrmaAlerts.map((a) => a.startedOn))}
+                timeVerb="issued"
+                lang={lang}
+                className="mt-1"
+              />
+            )}
+            {activeTab === "highways" && (
+              <SourceTag kind="official" source="DoR" time={latestTime(roads.map((r) => r.updatedAt))} lang={lang} className="mt-1" />
+            )}
           </div>
         </div>
 

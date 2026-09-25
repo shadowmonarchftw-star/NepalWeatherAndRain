@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Gauge, Wind, Siren, MapPin, ChevronDown } from "lucide-react";
 import { DHMRainStation, AirQualityStation, BipadIncident } from "@/lib/types";
 import { Language } from "@/lib/translations";
+import SourceTag, { latestTime } from "@/components/SourceTag";
 import { HistoryTarget } from "@/components/StationHistoryModal";
 
 interface ObservedConditionsProps {
@@ -95,6 +96,22 @@ export default function ObservedConditions({
               ? "पूर्वानुमान होइन — सरकारी मापन केन्द्र तथा रिपोर्टहरू (NDRRMA BIPAD)"
               : "Not a forecast — government sensor readings and reports (NDRRMA BIPAD)"}
           </p>
+          {tab === "rain" && (
+            <SourceTag kind="measured" source="DHM" time={latestTime(rainStations.map((r) => r.measuredOn))} lang={lang} className="mt-1" />
+          )}
+          {tab === "aqi" && (
+            <SourceTag kind="measured" source="DoE" time={latestTime(aqiStations.map((x) => x.measuredOn))} lang={lang} className="mt-1" />
+          )}
+          {tab === "incidents" && (
+            <SourceTag
+              kind="official"
+              label={np ? "प्रमाणित घटना" : "Verified reports"}
+              source="BIPAD"
+              time={latestTime(incidents.map((x) => x.reportedOn || x.incidentOn))}
+              lang={lang}
+              className="mt-1"
+            />
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-[#0A0F1A] p-1 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto max-w-full">
           {tabBtn("rain", <Gauge className="w-3.5 h-3.5" />, `${np ? "वर्षा" : "Rainfall"} (${rainStations.length})`)}

@@ -8,6 +8,7 @@ import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { RoadStatus } from "@/app/api/roads/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import SourceTag from "@/components/SourceTag";
 import { NEPAL_RIVER_SYSTEMS } from "@/data/nepalRivers";
 import { Maximize2, Minimize2, Crosshair, Satellite, ChevronUp, ChevronDown } from "lucide-react";
 
@@ -702,10 +703,13 @@ export default function NepalWeatherMap({
                 ? lang === "np" ? "मापन वर्षा (२४ घण्टा)" : "Measured rain (24h)"
                 : `${lang === "np" ? "पूर्वानुमान वर्षा" : "Forecast rain"} (${timeWindow})`}
             </span>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">
-              {activeLayer === "aqi" ? "DoE" : activeLayer === "observed" ? "DHM" : "Open-Meteo"}
-            </span>
           </div>
+          <SourceTag
+            kind={activeLayer === "aqi" || activeLayer === "observed" ? "measured" : "model"}
+            source={activeLayer === "aqi" ? "DoE" : activeLayer === "observed" ? "DHM" : "Open-Meteo"}
+            lang={lang}
+            className="mb-2"
+          />
           <div className="space-y-1.5 font-medium text-[11px]">
             {(activeLayer === "aqi"
               ? [

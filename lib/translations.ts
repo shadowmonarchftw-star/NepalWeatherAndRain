@@ -147,7 +147,7 @@ export const TRANSLATIONS = {
 
     // Situation Bar
     kpiPeakRain: "आजको अधिकतम पूर्वानुमानित वर्षा",
-    kpiHighAlertDistricts: "जोखिममा रहेका जिल्ला",
+    kpiHighAlertDistricts: "पूर्वानुमान जोखिममा रहेका जिल्ला",
     kpiRiverStatus: "नदी बहाव पूर्वसूचना",
     kpiStormDistance: "मौसमी प्रणालीको दुरी",
     inflowActive: "वायु प्रवाह सक्रिय",
@@ -260,7 +260,7 @@ export const TRANSLATIONS = {
     autoSyncEvery5Min: "प्रत्येक ५ मिनेटमा स्वतः अपडेट",
     nextSyncIn: "अर्को स्वतः अपडेट",
     refreshNowBtn: "ताजा गर्नुहोस्",
-    publicDataNotice: "सबै मौसमी तथा बाढी तथ्याङ्कहरू DHM, NDRRMA विपद् पोर्टल, ISRO INSAT-3D र Open-Meteo बाट प्रत्यक्ष प्राप्त र प्रमाणित छन्।",
+    publicDataNotice: "सबै तथ्याङ्क खुला स्रोतबाट लिइएका छन्: DHM (NDRRMA BIPAD मार्फत), IMD INSAT-3D, RainViewer र Open-Meteo। जिल्लाको जोखिम स्तर मोडेल पूर्वानुमान हो, DHM को आधिकारिक चेतावनी होइन।",
     justNow: "भर्खरै",
     minsAgo: "मिनेट अघि",
     secondsAgo: "सेकेन्ड अघि",

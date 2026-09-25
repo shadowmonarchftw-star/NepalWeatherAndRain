@@ -5,6 +5,7 @@ import { CloudRain, AlertTriangle, Waves, ShieldAlert, ArrowUpRight } from "luci
 import { DistrictWeatherSummary, NDRRMAAlert } from "@/lib/types";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
+import SourceTag, { latestTime } from "@/components/SourceTag";
 
 interface NationalSituationBarProps {
   districts: DistrictWeatherSummary[];
@@ -31,6 +32,9 @@ export default function NationalSituationBar({
   const dangerCount = districts.filter((d) => d.alertLevel === "Danger").length;
   const warningCount = districts.filter((d) => d.alertLevel === "Warning").length;
 
+  const riverTime = latestTime(dhmRivers.map((r) => r.waterLevelOn));
+  const alertTime = latestTime(ndrrmaAlerts.map((a) => a.startedOn));
+
   const elevatedRivers = dhmRivers.filter(
     (r) => r.status === "Warning" || r.status === "Danger"
   ).length;
@@ -46,6 +50,7 @@ export default function NationalSituationBar({
           <span className="font-semibold truncate">{t.kpiPeakRain}</span>
           <CloudRain className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C51D34] dark:text-[#FF4D6D] group-hover:scale-110 transition-transform flex-shrink-0" />
         </div>
+        <SourceTag kind="model" source="Open-Meteo" lang={lang} className="self-start mb-1" />
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">
             {peakDistrict?.total24hRain ?? 0}
@@ -64,6 +69,7 @@ export default function NationalSituationBar({
           <span className="font-semibold truncate">{t.kpiHighAlertDistricts}</span>
           <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" />
         </div>
+        <SourceTag kind="model" source="Open-Meteo" lang={lang} className="self-start mb-1" />
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums">
             {dangerCount + warningCount}
@@ -83,6 +89,7 @@ export default function NationalSituationBar({
           <span className="font-semibold truncate">{t.kpiRiverStatus}</span>
           <Waves className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-cyan-400 flex-shrink-0" />
         </div>
+        <SourceTag kind="measured" source="DHM" time={riverTime} lang={lang} className="self-start mb-1" />
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-blue-700 dark:text-cyan-300 tabular-nums">
             {dhmRivers.length}
@@ -105,6 +112,7 @@ export default function NationalSituationBar({
           <span className="font-semibold truncate">{lang === "np" ? "सक्रिय NDRRMA पूर्वसूचना" : "Active NDRRMA Alerts"}</span>
           <ShieldAlert className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" />
         </div>
+        <SourceTag kind="official" source="NDRRMA" time={alertTime} timeVerb="issued" lang={lang} className="self-start mb-1" />
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">
             {ndrrmaAlerts.length}
