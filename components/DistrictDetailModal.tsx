@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   X,
   CloudRain,
@@ -10,6 +10,8 @@ import {
   Waves,
   ShieldAlert,
   Calendar,
+  Share2,
+  Check,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -21,9 +23,39 @@ import {
   CartesianGrid,
 } from "recharts";
 import { DistrictWeatherSummary, DHMRainStation } from "@/lib/types";
-import { interpretWmoCode } from "@/lib/alertCalculator";
+import { interpretWmoCode, RAIN_BAND_LABEL } from "@/lib/alertCalculator";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 import SourceTag from "@/components/SourceTag";
+
+// Shares the current address (which includes ?district=…) via the phone's share sheet,
+// or copies it where sharing is not supported
+function ShareButton({ title, lang }: { title: string; lang: Language }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // share sheet dismissed or clipboard blocked: nothing to do
+    }
+  };
+  return (
+    <button
+      onClick={share}
+      className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-[#003893] text-slate-600 dark:text-slate-300 hover:text-white transition-all touch-manipulation"
+      title={lang === "np" ? "लिङ्क सेयर गर्नुहोस्" : "Share link"}
+      aria-label={lang === "np" ? "लिङ्क सेयर गर्नुहोस्" : "Share link"}
+    >
+      {copied ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+    </button>
+  );
+}
 
 interface DistrictDetailModalProps {
   district: DistrictWeatherSummary | null;
@@ -63,8 +95,10 @@ export default function DistrictDetailModal({
   });
 
   const weatherState = interpretWmoCode(district.current.weatherCode);
-  const isDanger = district.alertLevel === "Danger";
-  const isWarning = district.alertLevel === "Warning";
+  const isDanger = district.rainBand === "veryHeavy";
+  const isWarning = district.rainBand === "heavy";
+  const band = RAIN_BAND_LABEL[district.rainBand];
+  const bandText = lang === "np" ? band.np : band.en;
 
   const districtDisplayName = lang === "np" ? district.nepaliName : district.districtName;
 
@@ -100,21 +134,24 @@ export default function DistrictDetailModal({
                 {lang === "np" ? district.districtName : district.nepaliName}
               </span>
             </div>
-            <SourceTag kind="model" source="Open-Meteo" lang={lang} className="mt-1" />
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <SourceTag kind="model" source="Open-Meteo" lang={lang} />
+              <span
+                className={`px-2 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase border ${
+                  isDanger
+                    ? "bg-[#C51D34] text-white border-white animate-pulse"
+                    : isWarning
+                    ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                }`}
+              >
+                {lang === "np" ? "पूर्वानुमान" : "Forecast"}: {bandText}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span
-              className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-extrabold uppercase border ${
-                isDanger
-                  ? "bg-[#C51D34] text-white border-white animate-pulse"
-                  : isWarning
-                  ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-              }`}
-            >
-              {lang === "np" ? "पूर्वानुमान जोखिम" : "Forecast risk"}: {district.alertLevel}
-            </span>
+            <ShareButton title={districtDisplayName} lang={lang} />
 
             <button
               onClick={onClose}
@@ -145,20 +182,12 @@ export default function DistrictDetailModal({
             />
             <div className="text-xs space-y-1">
               <div className="font-bold text-xs sm:text-sm">
-                {t.threatAssessment} {district.primaryThreat}
+                {lang === "np" ? "आज (मोडेल):" : "Today (model):"} {bandText} · {district.total24hRain} mm
               </div>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-[11px] sm:text-xs">
-                {isDanger
-                  ? lang === "np"
-                    ? "मोडेल पूर्वानुमानले भारी वर्षा देखाउँछ। नदी किनार तथा पहिरो जोखिम क्षेत्रमा सतर्क रहनुहोस् र DHM/NDRRMA को आधिकारिक सूचना पालना गर्नुहोस्।"
-                    : "Model forecast shows very heavy rain. Stay alert near riverbanks and landslide-prone slopes, and follow official DHM/NDRRMA alerts."
-                  : isWarning
-                  ? lang === "np"
-                    ? "मध्यम तथा भारी वर्षाको सम्भावना। खोला-नालामा पानीको बहाव आकस्मिक रूपमा बढ्न सक्ने भएकाले यात्रा गर्दा सतर्कता अपनाउनुहोस्।"
-                    : "Heavy downpours expected. Stream levels will rise rapidly. Avoid unpaved steep roads and night travel."
-                  : lang === "np"
-                  ? "वर्षा सामान्य सीमाभित्र रहने अनुमान छ।"
-                  : "Precipitation within typical monsoon thresholds. General vigilance advised near local streams."}
+                {lang === "np"
+                  ? "यो कम्प्युटर मोडेलको पूर्वानुमान हो, आधिकारिक चेतावनी होइन। आधिकारिक जानकारीका लागि यस पृष्ठमा DHM पूर्वानुमान र NDRRMA पूर्वसूचना हेर्नुहोस्।"
+                  : "This is a computer model forecast, not an official warning. For official information see the DHM forecast and NDRRMA alerts on this page."}
               </p>
             </div>
           </div>
@@ -233,11 +262,11 @@ export default function DistrictDetailModal({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
             <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px] sm:text-xs mb-1">
-                <span>{lang === "np" ? "२४ घण्टे पूर्वानुमान" : "24h Forecast Rain"}</span>
+                <span>{lang === "np" ? "आजको पूर्वानुमान वर्षा" : "Forecast Rain Today"}</span>
                 <CloudRain className="w-4 h-4 text-[#C51D34] dark:text-[#FF4D6D]" />
               </div>
               <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums">{district.total24hRain} mm</div>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">48h: {district.total48hRain} mm</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{lang === "np" ? "आज + भोलि" : "Today + tomorrow"}: {district.total48hRain} mm</span>
             </div>
 
             <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800">
@@ -358,7 +387,7 @@ export default function DistrictDetailModal({
               <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span>{t.sevenDayTrend}</span>
             </h4>
-            <div className="flex sm:grid sm:grid-cols-4 lg:grid-cols-7 gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
+            <div className="grid grid-cols-4 lg:grid-cols-7 gap-1.5 sm:gap-2">
               {district.daily.time.slice(0, 7).map((dTime, idx) => {
                 const rainSum = district.daily.precipitationSum[idx] ?? 0;
                 const rawMax = district.daily.temperatureMax[idx];
@@ -370,7 +399,7 @@ export default function DistrictDetailModal({
                 return (
                   <div
                     key={dTime + idx}
-                    className="min-w-[85px] sm:min-w-0 flex-shrink-0 sm:flex-shrink p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between"
+                    className="min-w-0 p-1.5 sm:p-2.5 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-center flex flex-col justify-between"
                   >
                     <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400">
                       {lang === "np" ? `दिन ${idx + 1}` : `Day ${idx + 1}`}
@@ -382,7 +411,7 @@ export default function DistrictDetailModal({
                       </div>
                     </div>
                     <div className="text-[10px] text-[#C51D34] dark:text-[#FF4D6D] font-bold tabular-nums">{rainSum} mm</div>
-                    <div className="text-[9px] text-slate-500 dark:text-slate-400 tabular-nums">{prob}% prob</div>
+                    <div className="text-[9px] text-slate-500 dark:text-slate-400 tabular-nums">{prob}% {lang === "np" ? "सम्भावना" : "prob"}</div>
                   </div>
                 );
               })}

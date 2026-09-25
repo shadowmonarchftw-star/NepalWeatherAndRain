@@ -1,6 +1,6 @@
 import { District, NEPAL_DISTRICTS } from "@/data/nepalDistricts";
 import { DistrictWeatherSummary } from "./types";
-import { calculateDHMAlertLevel } from "./alertCalculator";
+import { forecastRainBand } from "./alertCalculator";
 
 /**
  * Fetch all 77 districts of Nepal in a single batch API call from Open-Meteo
@@ -39,7 +39,6 @@ export async function fetchAll77DistrictsLive(): Promise<DistrictWeatherSummary[
       const rain72h = Math.round((rain48h + (dailyPrecip[2] ?? 0)) * 10) / 10;
 
       const currentPrecip = data.current.precipitation;
-      const alertInfo = calculateDHMAlertLevel(rain24h, currentPrecip, district.riskVulnerability);
 
       return {
         districtId: district.id,
@@ -86,10 +85,7 @@ export async function fetchAll77DistrictsLive(): Promise<DistrictWeatherSummary[
         total24hRain: rain24h,
         total48hRain: rain48h,
         total72hRain: rain72h,
-        alertLevel: alertInfo.level,
-        flashFloodRiskScore: alertInfo.flashFloodScore,
-        landslideRiskScore: alertInfo.landslideScore,
-        primaryThreat: alertInfo.primaryThreat,
+        rainBand: forecastRainBand(rain24h),
       };
     });
   } catch (err) {
@@ -118,12 +114,13 @@ export async function fetchDistrictWeather(district: District): Promise<District
     if (!data?.current || !data?.hourly) throw new Error(`Open-Meteo returned no data for ${district.name}`);
 
     const hourlyPrecip: number[] = data.hourly?.precipitation || [];
-    const rain24h = Math.round(hourlyPrecip.slice(0, 24).reduce((a, b) => a + b, 0) * 10) / 10;
-    const rain48h = Math.round(hourlyPrecip.slice(0, 48).reduce((a, b) => a + b, 0) * 10) / 10;
-    const rain72h = Math.round(hourlyPrecip.slice(0, 72).reduce((a, b) => a + b, 0) * 10) / 10;
+    // Same calendar-day totals (Nepal time) as the all-districts list, so opening a district
+    // does not change its numbers elsewhere on the page
+    const dailyPrecip: number[] = data.daily?.precipitation_sum || [];
+    const rain24h = Math.round((dailyPrecip[0] ?? 0) * 10) / 10;
+    const rain48h = Math.round((rain24h + (dailyPrecip[1] ?? 0)) * 10) / 10;
+    const rain72h = Math.round((rain48h + (dailyPrecip[2] ?? 0)) * 10) / 10;
 
-    const maxHourly = Math.max(...hourlyPrecip.slice(0, 24), 0);
-    const alertInfo = calculateDHMAlertLevel(rain24h, maxHourly, district.riskVulnerability);
 
     return {
       districtId: district.id,
@@ -170,10 +167,7 @@ export async function fetchDistrictWeather(district: District): Promise<District
       total24hRain: rain24h,
       total48hRain: rain48h,
       total72hRain: rain72h,
-      alertLevel: alertInfo.level,
-      flashFloodRiskScore: alertInfo.flashFloodScore,
-      landslideRiskScore: alertInfo.landslideScore,
-      primaryThreat: alertInfo.primaryThreat,
+      rainBand: forecastRainBand(rain24h),
     };
   } catch (error) {
     console.error(`Open-Meteo forecast unavailable for ${district.name}`, error);

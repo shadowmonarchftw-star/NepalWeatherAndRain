@@ -32,7 +32,7 @@ export default function ProvinceQuickJumper({
   return (
     <div>
       <SourceTag kind="model" source="Open-Meteo" lang={lang} />
-    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none py-1">
+    <div className="flex flex-wrap items-center gap-1.5 py-1">
       {/* All Nepal Button */}
       <button
         onClick={() => onSelectProvince(0, [28.2, 84.4])}

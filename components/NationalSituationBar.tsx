@@ -29,8 +29,8 @@ export default function NationalSituationBar({
     return max;
   }, null);
 
-  const dangerCount = districts.filter((d) => d.alertLevel === "Danger").length;
-  const warningCount = districts.filter((d) => d.alertLevel === "Warning").length;
+  const veryHeavyCount = districts.filter((d) => d.rainBand === "veryHeavy").length;
+  const heavyCount = districts.filter((d) => d.rainBand === "heavy").length;
 
   const riverTime = latestTime(dhmRivers.map((r) => r.waterLevelOn));
   const alertTime = latestTime(ndrrmaAlerts.map((a) => a.startedOn));
@@ -72,14 +72,14 @@ export default function NationalSituationBar({
         <SourceTag kind="model" source="Open-Meteo" lang={lang} className="self-start mb-1" />
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums">
-            {dangerCount + warningCount}
+            {veryHeavyCount + heavyCount}
           </span>
           <span className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">/ 77 {lang === "np" ? "जिल्ला" : "Districts"}</span>
         </div>
         <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 truncate">
-          <span className="text-[#C51D34] dark:text-[#FF4D6D] font-bold">{dangerCount} {lang === "np" ? "खतरा" : "Danger"}</span>
+          <span className="text-[#C51D34] dark:text-[#FF4D6D] font-bold">{veryHeavyCount} {lang === "np" ? "धेरै भारी" : "very heavy"}</span>
           {" • "}
-          <span className="text-amber-600 dark:text-amber-400 font-bold">{warningCount} {lang === "np" ? "चेतावनी" : "Warning"}</span>
+          <span className="text-amber-600 dark:text-amber-400 font-bold">{heavyCount} {lang === "np" ? "भारी" : "heavy"}</span>
         </div>
       </div>
 

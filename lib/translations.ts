@@ -15,7 +15,7 @@ export const TRANSLATIONS = {
 
     // Situation Bar
     kpiPeakRain: "Peak Forecast Rain (Today)",
-    kpiHighAlertDistricts: "Districts at Forecast Risk",
+    kpiHighAlertDistricts: "Heavy Rain Forecast",
     kpiRiverStatus: "DHM River Watch",
     kpiStormDistance: "Bay System Proximity",
     inflowActive: "Inflow Active",
@@ -99,13 +99,9 @@ export const TRANSLATIONS = {
     noDistrictsFound: "No districts found matching",
     allDistricts: "All 77 Districts",
     filterAll: "ALL",
-    filterDanger: "DANGER",
-    filterWarning: "WARNING",
-    filterWatch: "WATCH",
 
     // District Modal
     closeForecast: "Close Forecast",
-    threatAssessment: "Threat Assessment:",
     hourlyRainRate: "Rain Rate (mm/h)",
     cumulativeRain: "Accumulation (mm)",
     temperature: "Temperature",
@@ -113,7 +109,7 @@ export const TRANSLATIONS = {
     pressure: "Pressure",
     elevation: "Elevation",
     sevenDayTrend: "7-Day Synoptic Trend",
-    dhmAlert: "Forecast Risk:",
+    dhmAlert: "Forecast (model):",
 
     // Footer
     nepalTrackerFooter: "Nepal Weather & Rain Tracker",
@@ -147,7 +143,7 @@ export const TRANSLATIONS = {
 
     // Situation Bar
     kpiPeakRain: "आजको अधिकतम पूर्वानुमानित वर्षा",
-    kpiHighAlertDistricts: "पूर्वानुमान जोखिममा रहेका जिल्ला",
+    kpiHighAlertDistricts: "भारी वर्षा पूर्वानुमान",
     kpiRiverStatus: "नदी बहाव पूर्वसूचना",
     kpiStormDistance: "मौसमी प्रणालीको दुरी",
     inflowActive: "वायु प्रवाह सक्रिय",
@@ -231,13 +227,9 @@ export const TRANSLATIONS = {
     noDistrictsFound: "कुनै जिल्ला फेला परेन",
     allDistricts: "सबै ७७ जिल्ला",
     filterAll: "सबै",
-    filterDanger: "उच्च जोखिम",
-    filterWarning: "चेतावनी",
-    filterWatch: "सतर्कता",
 
     // District Modal
     closeForecast: "बन्द गर्नुहोस्",
-    threatAssessment: "जोखिम मूल्याङ्कन:",
     hourlyRainRate: "वर्षा दर (मि.मि./घण्टा)",
     cumulativeRain: "कुल संकलित वर्षा (मि.मि.)",
     temperature: "तापक्रम",
@@ -245,7 +237,7 @@ export const TRANSLATIONS = {
     pressure: "वायुमण्डलीय चाप",
     elevation: "उचाइ",
     sevenDayTrend: "७ दिने मौसमी प्रक्षेपण",
-    dhmAlert: "पूर्वानुमान जोखिम:",
+    dhmAlert: "पूर्वानुमान (मोडेल):",
 
     // Footer
     nepalTrackerFooter: "नेपाल मौसम तथा वर्षा ट्रयाकर",

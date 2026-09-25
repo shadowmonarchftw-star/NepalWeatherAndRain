@@ -5,6 +5,7 @@ import { Search, MapPin, CloudRain, Mountain, Gauge } from "lucide-react";
 import { DistrictWeatherSummary, ObservedDistrictRain } from "@/lib/types";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 import SourceTag from "@/components/SourceTag";
+import { RAIN_BAND_LABEL } from "@/lib/alertCalculator";
 
 interface DistrictSelectorProps {
   districts: DistrictWeatherSummary[];
@@ -40,7 +41,7 @@ export default function DistrictSelector({
   const filteredDistricts = useMemo(() => {
     return districts.filter((d) => {
       if (activeProvinceId !== 0 && d.provinceId !== activeProvinceId) return false;
-      if (alertFilter !== "all" && d.alertLevel.toLowerCase() !== alertFilter.toLowerCase()) return false;
+      if (alertFilter !== "all" && d.rainBand !== alertFilter) return false;
       if (searchTerm.trim() !== "") {
         const query = searchTerm.toLowerCase();
         return (
@@ -93,7 +94,7 @@ export default function DistrictSelector({
       {/* Filter Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 my-3">
         {/* Province Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        <div className="flex flex-wrap items-center gap-1.5 pb-1">
           {PROVINCE_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -110,23 +111,24 @@ export default function DistrictSelector({
         </div>
 
         {/* Alert Filters */}
-        <div className="flex items-center gap-1 self-start sm:self-auto overflow-x-auto scrollbar-none -mx-1 px-1 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-1 self-start sm:self-auto">
           {[
             { id: "all", label: t.filterAll },
-            { id: "danger", label: t.filterDanger },
-            { id: "warning", label: t.filterWarning },
-            { id: "watch", label: t.filterWatch },
+            ...(["veryHeavy", "heavy", "moderate"] as const).map((b) => ({
+              id: b,
+              label: lang === "np" ? RAIN_BAND_LABEL[b].np : RAIN_BAND_LABEL[b].en,
+            })),
           ].map((f) => (
             <button
               key={f.id}
               onClick={() => setAlertFilter(f.id)}
               className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap touch-manipulation ${
                 alertFilter === f.id
-                  ? f.id === "danger"
+                  ? f.id === "veryHeavy"
                     ? "bg-[#C51D34] text-white"
-                    : f.id === "warning"
+                    : f.id === "heavy"
                     ? "bg-amber-500 text-black font-extrabold"
-                    : f.id === "watch"
+                    : f.id === "moderate"
                     ? "bg-yellow-500 text-black font-extrabold"
                     : "bg-[#003893] text-white"
                   : "bg-slate-100 dark:bg-[#0A0F1A] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
@@ -147,8 +149,8 @@ export default function DistrictSelector({
         ) : (
           filteredDistricts.map((d) => {
             const isSelected = selectedDistrictId === d.districtId;
-            const isDanger = d.alertLevel === "Danger";
-            const isWarning = d.alertLevel === "Warning";
+            const isDanger = d.rainBand === "veryHeavy";
+            const isWarning = d.rainBand === "heavy";
 
             const badgeBg = isDanger
               ? "bg-[#C51D34] text-white border-white/20 animate-pulse"
@@ -176,7 +178,7 @@ export default function DistrictSelector({
                       {name}
                     </span>
                     <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase border flex-shrink-0 ${badgeBg}`}>
-                      {d.alertLevel}
+                      {lang === "np" ? RAIN_BAND_LABEL[d.rainBand].np : RAIN_BAND_LABEL[d.rainBand].en}
                     </span>
                   </div>
 

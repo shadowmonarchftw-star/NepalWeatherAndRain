@@ -10,6 +10,7 @@ import FloodHazardIndex from "@/components/FloodHazardIndex";
 import ObservedConditions from "@/components/ObservedConditions";
 import DhmForecastCard from "@/components/DhmForecastCard";
 import NearMe from "@/components/NearMe";
+import HowToRead from "@/components/HowToRead";
 import DhmCityWeather from "@/components/DhmCityWeather";
 import StationHistoryModal, { HistoryTarget } from "@/components/StationHistoryModal";
 import { RoadStatus } from "@/app/api/roads/route";
@@ -30,6 +31,7 @@ import {
 import { summarizeObservedRainByDistrict } from "@/lib/observedRain";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { Language } from "@/lib/translations";
+import { NEPAL_DISTRICTS } from "@/data/nepalDistricts";
 
 // Dynamically import Leaflet Map with SSR disabled
 const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
@@ -46,6 +48,14 @@ const NepalWeatherMap = dynamic(() => import("@/components/NepalWeatherMap"), {
 });
 
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+// Keep the open district in the address bar so the page can be shared or bookmarked
+function setDistrictInUrl(districtId: string | null) {
+  const url = new URL(window.location.href);
+  if (districtId) url.searchParams.set("district", districtId);
+  else url.searchParams.delete("district");
+  window.history.replaceState(null, "", url);
+}
 
 export default function Home() {
   // Theme State: Default to Light Mode ("light"), toggleable to Dark Mode ("dark")
@@ -204,6 +214,7 @@ export default function Home() {
   // 5. On clicking a district, fetch detailed 72h hourly forecast if needed
   const handleSelectDistrict = async (districtId: string) => {
     setSelectedDistrictId(districtId);
+    setDistrictInUrl(districtId);
 
     const existing = districtsData.find((d) => d.districtId === districtId);
     if (!existing || existing.hourly.time.length === 0) {
@@ -219,6 +230,26 @@ export default function Home() {
         console.warn("Could not load detailed district hourly data", err);
       }
     }
+  };
+
+  // Shared link (?district=kaski): open that district once the district list has loaded
+  const urlDistrictRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (urlDistrictRef.current === undefined) {
+      const id = new URLSearchParams(window.location.search).get("district");
+      urlDistrictRef.current = id && NEPAL_DISTRICTS.some((d) => d.id === id) ? id : null;
+    }
+    if (urlDistrictRef.current && districtsData.length > 0) {
+      const id = urlDistrictRef.current;
+      urlDistrictRef.current = null;
+      handleSelectDistrict(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [districtsData.length]);
+
+  const closeDistrict = () => {
+    setSelectedDistrictId(null);
+    setDistrictInUrl(null);
   };
 
   // 6. Handle Province Quick Jumper selection
@@ -287,6 +318,11 @@ export default function Home() {
               if (d) setMapCenterFocus([d.lat, d.lon]);
             }}
           />
+        </section>
+
+        {/* What the tags, statuses and bands mean */}
+        <section>
+          <HowToRead lang={lang} />
         </section>
 
         {/* Near me: nearest gauges and alerts (location stays on device) */}
@@ -418,7 +454,7 @@ export default function Home() {
       {/* 9. District Detailed 72h Forecast Modal */}
       <DistrictDetailModal
         district={selectedDistrict}
-        onClose={() => setSelectedDistrictId(null)}
+        onClose={closeDistrict}
         lang={lang}
         rainStations={selectedDistrictId ? rainStations.filter((st) => st.districtId === selectedDistrictId) : []}
       />

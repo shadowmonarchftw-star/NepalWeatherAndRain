@@ -1,79 +1,23 @@
-import { DHMAlertLevel } from "./types";
+import { ForecastRainBand } from "./types";
 
 /**
- * Department of Hydrology & Meteorology (DHM) Nepal rainfall criteria:
- * < 25mm / 24h  => Normal (Green)
- * 25-50mm / 24h => Watch (Yellow)
- * 50-100mm / 24h => Warning (Orange)
- * > 100mm / 24h => Danger (Crimson / Red)
+ * Plain rain-amount bands for Open-Meteo model forecasts (today's total, Nepal time).
+ * These are NOT DHM warning levels; they only describe how much rain the model forecasts.
+ * Same bands as the map legend.
  */
-export function calculateDHMAlertLevel(
-  rain24hMm: number,
-  maxHourlyMm: number = 0,
-  vulnerability: "Very High" | "High" | "Medium" | "Moderate" = "High"
-): {
-  level: DHMAlertLevel;
-  flashFloodScore: number;
-  landslideScore: number;
-  primaryThreat: string;
-  badgeColor: string;
-  borderColor: string;
-  textColor: string;
-} {
-  // Base scores derived from 24h accumulation
-  let floodScore = Math.min(100, Math.round((rain24hMm / 120) * 100));
-  let slideScore = Math.min(100, Math.round((rain24hMm / 130) * 100));
-
-  // Convective cloudburst amplification (>20mm in a single hour)
-  if (maxHourlyMm >= 25) {
-    floodScore = Math.min(100, floodScore + 25);
-    slideScore = Math.min(100, slideScore + 30);
-  } else if (maxHourlyMm >= 15) {
-    floodScore = Math.min(100, floodScore + 15);
-    slideScore = Math.min(100, slideScore + 15);
-  }
-
-  // Terrain vulnerability factor
-  const vulnWeight = vulnerability === "Very High" ? 1.25 : vulnerability === "High" ? 1.1 : 0.9;
-  floodScore = Math.min(100, Math.round(floodScore * vulnWeight));
-  slideScore = Math.min(100, Math.round(slideScore * vulnWeight));
-
-  let level: DHMAlertLevel = "Normal";
-  let primaryThreat = "Minor surface runoff";
-  let badgeColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40";
-  let borderColor = "border-emerald-600";
-  let textColor = "text-emerald-400";
-
-  if (rain24hMm >= 100 || maxHourlyMm >= 25 || floodScore >= 80) {
-    level = "Danger";
-    primaryThreat = "Severe Flash Flooding & Torrential Mudslides";
-    badgeColor = "bg-crimson text-white border-red-500 shadow-lg shadow-crimson/30 animate-pulse";
-    borderColor = "border-crimson";
-    textColor = "text-crimson";
-  } else if (rain24hMm >= 50 || maxHourlyMm >= 15 || floodScore >= 60) {
-    level = "Warning";
-    primaryThreat = "High River Inundation & Slope Landslides";
-    badgeColor = "bg-amber-500/20 text-amber-300 border-amber-500/40";
-    borderColor = "border-amber-500";
-    textColor = "text-amber-400";
-  } else if (rain24hMm >= 25 || floodScore >= 40) {
-    level = "Watch";
-    primaryThreat = "Waterlogging in lowlands & roadside erosion";
-    badgeColor = "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
-    borderColor = "border-yellow-500";
-    textColor = "text-yellow-400";
-  }
-
-  return {
-    level,
-    flashFloodScore: floodScore,
-    landslideScore: slideScore,
-    primaryThreat,
-    badgeColor,
-    borderColor,
-    textColor,
-  };
+export function forecastRainBand(rainTodayMm: number): ForecastRainBand {
+  if (rainTodayMm >= 100) return "veryHeavy";
+  if (rainTodayMm >= 50) return "heavy";
+  if (rainTodayMm >= 25) return "moderate";
+  return "light";
 }
+
+export const RAIN_BAND_LABEL: Record<ForecastRainBand, { en: string; np: string; range: string }> = {
+  veryHeavy: { en: "Very heavy rain", np: "धेरै भारी वर्षा", range: "100+ mm" },
+  heavy: { en: "Heavy rain", np: "भारी वर्षा", range: "50–100 mm" },
+  moderate: { en: "Moderate rain", np: "मध्यम वर्षा", range: "25–50 mm" },
+  light: { en: "Light / no rain", np: "हल्का / वर्षा छैन", range: "< 25 mm" },
+};
 
 /**
  * Translate WMO Weather Interpretation Codes to friendly text & icons

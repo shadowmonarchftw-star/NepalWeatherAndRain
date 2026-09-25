@@ -9,6 +9,7 @@ import { DHMRiverStation } from "@/app/api/dhm/route";
 import { RoadStatus } from "@/app/api/roads/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 import SourceTag from "@/components/SourceTag";
+import { RAIN_BAND_LABEL } from "@/lib/alertCalculator";
 import { NEPAL_RIVER_SYSTEMS } from "@/data/nepalRivers";
 import { Maximize2, Minimize2, Crosshair, Satellite, ChevronUp, ChevronDown } from "lucide-react";
 
@@ -466,13 +467,13 @@ export default function NepalWeatherMap({
       const districtDisplayName = lang === "np" ? district.nepaliName : district.districtName;
 
       const alertBadge =
-        district.alertLevel === "Danger"
+        district.rainBand === "veryHeavy"
           ? {
               bg: isDark ? "#7f1d1d" : "#fee2e2",
               text: isDark ? "#fca5a5" : "#991b1b",
               border: isDark ? "#dc2626" : "#f87171",
             }
-          : district.alertLevel === "Warning"
+          : district.rainBand === "heavy"
           ? {
               bg: isDark ? "#78350f" : "#fef3c7",
               text: isDark ? "#fcd34d" : "#92400e",
@@ -506,7 +507,7 @@ export default function NepalWeatherMap({
             <span style="color: ${textPrimary}; font-weight: 600;">${district.elevation}m</span>
           </div>
           <div style="background: ${alertBadge.bg}; border: 1px solid ${alertBadge.border}; color: ${alertBadge.text}; padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center;">
-            ${t.dhmAlert} ${district.alertLevel.toUpperCase()}
+            ${t.dhmAlert} ${lang === "np" ? RAIN_BAND_LABEL[district.rainBand].np : RAIN_BAND_LABEL[district.rainBand].en} (${lang === "np" ? "आज" : "today"})
           </div>
           <div style="margin-top: 6px; text-align: center; color: #0284c7; font-size: 11px; font-weight: 600; text-decoration: underline; cursor: pointer;">
             ${lang === "np" ? "७२ घण्टे विस्तृत विवरण हेर्नुहोस् →" : "View 72h detailed forecast →"}

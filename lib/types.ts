@@ -1,4 +1,5 @@
-export type DHMAlertLevel = "Normal" | "Watch" | "Warning" | "Danger";
+// Amount of rain the Open-Meteo model forecasts for the next 24h (not a DHM warning level)
+export type ForecastRainBand = "light" | "moderate" | "heavy" | "veryHeavy";
 
 export interface CurrentWeather {
   temperature: number;
@@ -51,10 +52,7 @@ export interface DistrictWeatherSummary {
   total24hRain: number; // mm
   total48hRain: number; // mm
   total72hRain: number; // mm
-  alertLevel: DHMAlertLevel;
-  flashFloodRiskScore: number; // 0-100
-  landslideRiskScore: number; // 0-100
-  primaryThreat: string;
+  rainBand: ForecastRainBand;
 }
 
 export interface RadarFrame {

@@ -21,6 +21,23 @@ const PERIOD = {
 };
 
 
+type Period = City["forecast"][number];
+
+const forecastCell = (f: Period, np: boolean) => (
+  <>
+    <div className="text-slate-700 dark:text-slate-300">{np ? f.weatherNe || f.weather : f.weather || f.weatherNe}</div>
+    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+      {f.tempFrom !== null && f.tempTo !== null ? `${f.tempFrom}–${f.tempTo} °C` : ""}
+      {f.rainChance !== null ? ` · ${np ? "वर्षा सम्भावना" : "rain"} ${f.rainChance}%` : ""}
+    </div>
+  </>
+);
+
+const observedTemp = (c: City) => (c.observed ? `${c.observed.maxTemp ?? "—"} / ${c.observed.minTemp ?? "—"} °C` : "—");
+
+const observedRain = (c: City, np: boolean) =>
+  c.observed ? (c.observed.trace ? (np ? "नगण्य" : "Trace") : c.observed.rainfallMm !== null ? `${c.observed.rainfallMm} mm` : "—") : "—";
+
 export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssuedAt, onFocus, lang = "en" }: Props) {
   const np = lang === "np";
   const periods = cities.find((c) => c.forecast.length > 0)?.forecast.map((p) => p.period) || [];
@@ -49,7 +66,37 @@ export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssue
           {np ? "DHM सहर मौसम हाल उपलब्ध छैन।" : "DHM city weather is currently unavailable."}
         </p>
       ) : (
-        <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+        <>
+        {/* Phones: one card per city, so nothing is hidden off-screen */}
+        <div className="mt-3 sm:hidden space-y-2">
+          {cities.map((c) => (
+            <div key={c.id} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+              <button onClick={() => onFocus?.(c.coordinates)} className="font-semibold hover:underline flex items-center gap-1 text-left">
+                <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                {np && c.nepaliName ? c.nepaliName.trim() : c.name}
+              </button>
+              <div className="mt-1.5 space-y-1">
+                {periods.map((p) => {
+                  const f = c.forecast.find((x) => x.period === p);
+                  return (
+                    <div key={p} className="flex gap-2">
+                      <span className="w-16 flex-shrink-0 font-semibold text-slate-500 dark:text-slate-400">{np ? PERIOD[p].np : PERIOD[p].en}</span>
+                      <div className="min-w-0">{f ? forecastCell(f, np) : "—"}</div>
+                    </div>
+                  );
+                })}
+                <div className="flex gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <span className="w-16 flex-shrink-0 font-semibold text-slate-500 dark:text-slate-400">{np ? "मापन" : "Measured"}</span>
+                  <span className="tabular-nums">
+                    {observedTemp(c)} · {np ? "वर्षा" : "rain"} <span className="font-semibold">{observedRain(c, np)}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-3 hidden sm:block overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
           <table className="w-full text-xs tabular-nums">
             <thead className="bg-slate-50 dark:bg-[#0A0F1A] text-slate-500 dark:text-slate-400 text-left">
               <tr>
@@ -76,31 +123,22 @@ export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssue
                     const f = c.forecast.find((x) => x.period === p);
                     return (
                       <td key={p} className="py-1.5 px-2 min-w-[140px]">
-                        {f ? (
-                          <>
-                            <div className="text-slate-700 dark:text-slate-300">{np ? f.weatherNe || f.weather : f.weather || f.weatherNe}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                              {f.tempFrom !== null && f.tempTo !== null ? `${f.tempFrom}–${f.tempTo} °C` : ""}
-                              {f.rainChance !== null ? ` · ${np ? "वर्षा सम्भावना" : "rain"} ${f.rainChance}%` : ""}
-                            </div>
-                          </>
-                        ) : (
-                          "—"
-                        )}
+                        {f ? forecastCell(f, np) : "—"}
                       </td>
                     );
                   })}
                   <td className="py-1.5 px-2 text-right whitespace-nowrap">
-                    {c.observed ? `${c.observed.maxTemp ?? "—"} / ${c.observed.minTemp ?? "—"} °C` : "—"}
+                    {observedTemp(c)}
                   </td>
                   <td className="py-1.5 px-2.5 text-right whitespace-nowrap font-semibold">
-                    {c.observed ? (c.observed.trace ? (np ? "नगण्य" : "Trace") : c.observed.rainfallMm !== null ? `${c.observed.rainfallMm} mm` : "—") : "—"}
+                    {observedRain(c, np)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        </>
       )}
       <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
         {np
