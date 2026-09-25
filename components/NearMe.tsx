@@ -5,12 +5,14 @@ import { LocateFixed, Waves, Gauge, Wind, ShieldAlert, MapPin } from "lucide-rea
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { DHMRainStation, AirQualityStation, NDRRMAAlert, DistrictWeatherSummary } from "@/lib/types";
 import { Language } from "@/lib/translations";
+import { RoadStatus } from "@/app/api/roads/route";
 
 interface NearMeProps {
   rivers: DHMRiverStation[];
   rainStations: DHMRainStation[];
   aqiStations: AirQualityStation[];
   alerts: NDRRMAAlert[];
+  roads?: RoadStatus[];
   districts: DistrictWeatherSummary[];
   onFocus?: (coords: [number, number]) => void;
   lang?: Language;
@@ -36,7 +38,7 @@ function nearest<T>(items: T[], here: [number, number], coords: (t: T) => [numbe
   return best;
 }
 
-export default function NearMe({ rivers, rainStations, aqiStations, alerts, districts, onFocus, lang = "en" }: NearMeProps) {
+export default function NearMe({ rivers, rainStations, aqiStations, alerts, roads = [], districts, onFocus, lang = "en" }: NearMeProps) {
   const [here, setHere] = useState<[number, number] | null>(null);
   const [status, setStatus] = useState<"idle" | "locating" | "denied" | "error">("idle");
   const np = lang === "np";
@@ -68,8 +70,13 @@ export default function NearMe({ rivers, rainStations, aqiStations, alerts, dist
         .map((a) => ({ a, km: distanceKm(here, [a.lat, a.lon]) }))
         .filter((x) => x.km <= ALERT_RADIUS_KM)
         .sort((x, y) => x.km - y.km),
+      closedRoads: roads
+        .filter((r) => r.status === "CLOSED" && r.coordinates)
+        .map((r) => ({ r, km: distanceKm(here, r.coordinates as [number, number]) }))
+        .filter((x) => x.km <= ALERT_RADIUS_KM)
+        .sort((x, y) => x.km - y.km),
     };
-  }, [here, rivers, rainStations, aqiStations, alerts, districts]);
+  }, [here, rivers, rainStations, aqiStations, alerts, roads, districts]);
 
   const km = (v: number) => `${v < 10 ? v.toFixed(1) : Math.round(v)} km`;
 
@@ -154,6 +161,22 @@ export default function NearMe({ rivers, rainStations, aqiStations, alerts, dist
               </div>
             ))}
           </div>
+
+          {result.closedRoads.length > 0 && (
+            <div className="p-2.5 rounded-xl border text-xs bg-red-50 dark:bg-[#C51D34]/15 border-red-300 dark:border-[#C51D34] text-red-900 dark:text-red-100">
+              <div className="font-bold">
+                {np
+                  ? `${ALERT_RADIUS_KM} km भित्र ${result.closedRoads.length} सडक बन्द (सडक विभाग)`
+                  : `${result.closedRoads.length} closed road(s) within ${ALERT_RADIUS_KM} km (Department of Roads)`}
+              </div>
+              {result.closedRoads.map(({ r, km: d }) => (
+                <div key={r.id} className="mt-1">
+                  {r.road} — {r.location}
+                  {r.reason ? ` (${r.reason})` : ""} · {km(d)}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {result.river &&

@@ -14,7 +14,7 @@ export async function fetchAll77DistrictsLive(): Promise<DistrictWeatherSummary[
 
   try {
     const res = await fetch(url, {
-      next: { revalidate: 300 }, // 5-minute cache
+      cache: "no-store",
       headers: {
         "User-Agent": "NepalWeatherTracker/1.0",
       },
@@ -106,7 +106,7 @@ export async function fetchDistrictWeather(district: District): Promise<District
 
   try {
     const res = await fetch(url, {
-      next: { revalidate: 300 },
+      cache: "no-store",
       headers: {
         "User-Agent": "NepalWeatherTracker/1.0",
       },

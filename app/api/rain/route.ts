@@ -22,7 +22,7 @@ interface BipadRainStation {
 export async function GET() {
   try {
     const [res, districtMap] = await Promise.all([
-      fetch(`${BIPAD_API}/rain-stations/?limit=1000`, { next: { revalidate: 300 }, headers: BIPAD_HEADERS }),
+      fetch(`${BIPAD_API}/rain-stations/?limit=1000`, { cache: "no-store", headers: BIPAD_HEADERS }),
       fetchBipadDistrictMap(),
     ]);
     if (!res.ok) throw new Error(`BIPAD rain-stations returned HTTP ${res.status}`);
@@ -88,7 +88,7 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         stations,
       },
-      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
+      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" } }
     );
   } catch (error) {
     console.error("BIPAD/DHM rain gauges unavailable", error);

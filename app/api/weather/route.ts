@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       const data = await fetchDistrictWeather(district);
       return NextResponse.json(data, {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300",
         },
       });
     }
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const allDistricts = await fetchAll77DistrictsLive();
     return NextResponse.json(allDistricts, {
       headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300",
       },
     });
   } catch (error) {

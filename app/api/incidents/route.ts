@@ -29,7 +29,7 @@ const n = (v: number | null | undefined) => (typeof v === "number" && v > 0 ? v 
 export async function GET() {
   try {
     const res = await fetch(`${BIPAD_API}/incident/?limit=300&ordering=-incident_on&expand=loss,hazard`, {
-      next: { revalidate: 900 },
+      cache: "no-store",
       headers: BIPAD_HEADERS,
     });
     if (!res.ok) throw new Error(`BIPAD incident returned HTTP ${res.status}`);
@@ -76,7 +76,7 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         incidents,
       },
-      { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" } }
+      { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300" } }
     );
   } catch (error) {
     console.error("BIPAD incidents unavailable", error);

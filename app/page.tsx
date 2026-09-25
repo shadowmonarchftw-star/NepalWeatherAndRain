@@ -10,6 +10,10 @@ import FloodHazardIndex from "@/components/FloodHazardIndex";
 import ObservedConditions from "@/components/ObservedConditions";
 import DhmForecastCard from "@/components/DhmForecastCard";
 import NearMe from "@/components/NearMe";
+import DhmCityWeather from "@/components/DhmCityWeather";
+import StationHistoryModal, { HistoryTarget } from "@/components/StationHistoryModal";
+import { RoadStatus } from "@/app/api/roads/route";
+import { DhmCityWeather as DhmCity } from "@/app/api/dhm-cities/route";
 import DistrictSelector from "@/components/DistrictSelector";
 import DistrictDetailModal from "@/components/DistrictDetailModal";
 import EmergencyModal from "@/components/EmergencyModal";
@@ -77,6 +81,13 @@ export default function Home() {
   const [rainStations, setRainStations] = useState<DHMRainStation[]>([]);
   const [aqiStations, setAqiStations] = useState<AirQualityStation[]>([]);
   const [incidents, setIncidents] = useState<BipadIncident[]>([]);
+  const [roads, setRoads] = useState<RoadStatus[]>([]);
+  const [dhmCities, setDhmCities] = useState<{ cities: DhmCity[]; forecastIssuedAt: string | null; observedIssuedAt: string | null }>({
+    cities: [],
+    forecastIssuedAt: null,
+    observedIssuedAt: null,
+  });
+  const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number>(0);
 
@@ -110,7 +121,7 @@ export default function Home() {
         return r.json();
       });
 
-    const [weather, dhm, ndrrma, rain, aqi, inc, radar] = await Promise.allSettled([
+    const [weather, dhm, ndrrma, rain, aqi, inc, radar, roadRes, cityRes] = await Promise.allSettled([
       json("/api/weather"),
       json("/api/dhm"),
       json("/api/ndrrma"),
@@ -118,6 +129,8 @@ export default function Home() {
       json("/api/aqi"),
       json("/api/incidents"),
       json("/api/radar"),
+      json("/api/roads"),
+      json("/api/dhm-cities"),
     ]);
 
     // Open-Meteo forecast: keep the last good forecast if a refresh fails
@@ -130,6 +143,12 @@ export default function Home() {
     setRainStations(rain.status === "fulfilled" && Array.isArray(rain.value.stations) ? rain.value.stations : []);
     setAqiStations(aqi.status === "fulfilled" && Array.isArray(aqi.value.stations) ? aqi.value.stations : []);
     setIncidents(inc.status === "fulfilled" && Array.isArray(inc.value.incidents) ? inc.value.incidents : []);
+    setRoads(roadRes.status === "fulfilled" && Array.isArray(roadRes.value.roads) ? roadRes.value.roads : []);
+    setDhmCities(
+      cityRes.status === "fulfilled" && Array.isArray(cityRes.value.cities)
+        ? cityRes.value
+        : { cities: [], forecastIssuedAt: null, observedIssuedAt: null }
+    );
     if (radar.status === "fulfilled" && radar.value?.radarPast) {
       setRadarData(radar.value);
       if (radar.value.radarPast.length) setRadarFrameIndex(radar.value.radarPast.length - 1);
@@ -277,6 +296,7 @@ export default function Home() {
             rainStations={rainStations}
             aqiStations={aqiStations}
             alerts={ndrrmaAlerts}
+            roads={roads}
             districts={districtsData}
             onFocus={(coords) => setMapCenterFocus(coords)}
             lang={lang}
@@ -286,6 +306,17 @@ export default function Home() {
         {/* Official DHM forecast bulletin */}
         <section>
           <DhmForecastCard lang={lang} refreshKey={forecastRefreshKey} />
+        </section>
+
+        {/* DHM official city forecasts and observed daily weather */}
+        <section>
+          <DhmCityWeather
+            cities={dhmCities.cities}
+            forecastIssuedAt={dhmCities.forecastIssuedAt}
+            observedIssuedAt={dhmCities.observedIssuedAt}
+            onFocus={(coords) => setMapCenterFocus(coords)}
+            lang={lang}
+          />
         </section>
 
         {/* 4. Province Quick Jumper */}
@@ -323,6 +354,7 @@ export default function Home() {
             ndrrmaAlerts={ndrrmaAlerts}
             rainStations={rainStations}
             aqiStations={aqiStations}
+            roads={roads}
             activeLayer={activeLayer}
             timeWindow={timeWindow}
             basemap={basemap}
@@ -344,6 +376,7 @@ export default function Home() {
             aqiStations={aqiStations}
             incidents={incidents}
             onFocus={(coords) => setMapCenterFocus(coords)}
+            onOpenHistory={setHistoryTarget}
             lang={lang}
           />
         </section>
@@ -354,6 +387,8 @@ export default function Home() {
             dhmRivers={dhmRivers}
             ndrrmaAlerts={ndrrmaAlerts}
             rainStations={rainStations}
+            roads={roads}
+            onOpenHistory={setHistoryTarget}
             onSelectAlertFocus={(coords) => setMapCenterFocus(coords)}
             lang={lang}
           />
@@ -387,6 +422,9 @@ export default function Home() {
         lang={lang}
         rainStations={selectedDistrictId ? rainStations.filter((st) => st.districtId === selectedDistrictId) : []}
       />
+
+      {/* 24h river / rain history */}
+      <StationHistoryModal target={historyTarget} onClose={() => setHistoryTarget(null)} lang={lang} />
 
       {/* 10. Emergency Hotlines Modal */}
       <EmergencyModal

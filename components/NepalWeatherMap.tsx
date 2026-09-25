@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { DistrictWeatherSummary, NDRRMAAlert, DHMRainStation, AirQualityStation } from "@/lib/types";
 import { MapLayerType, ForecastTimeWindow, BasemapType } from "./MapControls";
 import { DHMRiverStation } from "@/app/api/dhm/route";
+import { RoadStatus } from "@/app/api/roads/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 import { NEPAL_RIVER_SYSTEMS } from "@/data/nepalRivers";
 import { Maximize2, Minimize2, Crosshair, Satellite, ChevronUp, ChevronDown } from "lucide-react";
@@ -16,6 +17,7 @@ interface NepalWeatherMapProps {
   ndrrmaAlerts?: NDRRMAAlert[];
   rainStations?: DHMRainStation[];
   aqiStations?: AirQualityStation[];
+  roads?: RoadStatus[];
   activeLayer: MapLayerType;
   timeWindow: ForecastTimeWindow;
   basemap: BasemapType;
@@ -93,6 +95,7 @@ export default function NepalWeatherMap({
   ndrrmaAlerts = [],
   rainStations = [],
   aqiStations = [],
+  roads = [],
   activeLayer,
   timeWindow,
   basemap,
@@ -114,6 +117,7 @@ export default function NepalWeatherMap({
   const dhmRadarLayerRef = useRef<L.LayerGroup | null>(null);
   const ndrrmaLayerRef = useRef<L.LayerGroup | null>(null);
   const observedLayerRef = useRef<L.LayerGroup | null>(null);
+  const roadsLayerRef = useRef<L.LayerGroup | null>(null);
   const borderLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -162,6 +166,7 @@ export default function NepalWeatherMap({
     dhmRadarLayerRef.current = L.layerGroup().addTo(map);
     ndrrmaLayerRef.current = L.layerGroup().addTo(map);
     observedLayerRef.current = L.layerGroup().addTo(map);
+    roadsLayerRef.current = L.layerGroup().addTo(map);
 
     // Render Nepal National Boundary Polygon
     const borderPolygon = L.polygon(NEPAL_BORDER_COORDINATES, {
@@ -513,6 +518,36 @@ export default function NepalWeatherMap({
       markersGroup.addLayer(circleMarker);
     });
   }, [districtsData, timeWindow, selectedDistrictId, onSelectDistrict, lang, t.dhmAlert, theme, activeLayer]);
+
+  // Render Department of Roads closures (closed roads always; partly open only on the rivers/roads-relevant layers)
+  useEffect(() => {
+    if (!roadsLayerRef.current) return;
+    const group = roadsLayerRef.current;
+    group.clearLayers();
+    roads
+      .filter((r) => r.coordinates && (r.status === "CLOSED" || (r.status === "PARTIAL_OPEN" && activeLayer === "rivers")))
+      .forEach((r) => {
+        const closed = r.status === "CLOSED";
+        const icon = L.divIcon({
+          className: "custom-road-marker",
+          html: `<div style="transform: translate(-50%, -50%); width: 20px; height: 20px; border-radius: 4px; background: ${closed ? "#C51D34" : "#F59E0B"}; color: #fff; font-weight: 900; font-size: 12px; line-height: 20px; text-align: center; border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.35);">${closed ? "⛔" : "!"}</div>`,
+        });
+        const since = r.blockedSince
+          ? new Date(r.blockedSince).toLocaleString(lang === "np" ? "ne-NP" : "en-US", { timeZone: "Asia/Kathmandu", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+          : "";
+        const marker = L.marker(r.coordinates as [number, number], { icon });
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; color: ${textPrimary}; min-width: 180px; max-width: 250px;">
+            <div style="font-weight: 800; color: ${closed ? "#dc2626" : "#b45309"}; text-transform: uppercase; font-size: 11px;">${closed ? (lang === "np" ? "सडक बन्द" : "Road closed") : lang === "np" ? "आंशिक खुला" : "Partly open"}</div>
+            <div style="font-weight: 800; font-size: 13px; margin: 2px 0;">${r.road}</div>
+            <div style="color: ${textSecondary};">${r.location}${r.reason ? " · " + r.reason : ""}</div>
+            ${since ? `<div style="color: ${textMuted}; font-size: 10px; margin-top: 3px;">${lang === "np" ? "अवरोध सुरु" : "Blocked since"} ${since}${r.repairEta ? " · ETA " + r.repairEta : ""}</div>` : ""}
+            <div style="font-size: 9px; color: ${textMuted}; margin-top: 4px;">Source: Department of Roads via BIPAD</div>
+          </div>
+        `);
+        group.addLayer(marker);
+      });
+  }, [roads, activeLayer, lang, theme]);
 
   // Render measured-rain gauges or air-quality stations
   useEffect(() => {

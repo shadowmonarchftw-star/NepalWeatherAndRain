@@ -20,7 +20,7 @@ interface BipadPollutionStation {
 export async function GET() {
   try {
     const [res, districtMap] = await Promise.all([
-      fetch(`${BIPAD_API}/pollution-stations/?limit=200`, { next: { revalidate: 600 }, headers: BIPAD_HEADERS }),
+      fetch(`${BIPAD_API}/pollution-stations/?limit=200`, { cache: "no-store", headers: BIPAD_HEADERS }),
       fetchBipadDistrictMap(),
     ]);
     if (!res.ok) throw new Error(`BIPAD pollution-stations returned HTTP ${res.status}`);
@@ -67,7 +67,7 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         stations,
       },
-      { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200" } }
+      { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=300" } }
     );
   } catch (error) {
     console.error("BIPAD air quality unavailable", error);

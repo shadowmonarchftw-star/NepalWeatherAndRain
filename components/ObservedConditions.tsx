@@ -4,12 +4,14 @@ import React, { useMemo, useState } from "react";
 import { Gauge, Wind, Siren, MapPin, ChevronDown } from "lucide-react";
 import { DHMRainStation, AirQualityStation, BipadIncident } from "@/lib/types";
 import { Language } from "@/lib/translations";
+import { HistoryTarget } from "@/components/StationHistoryModal";
 
 interface ObservedConditionsProps {
   rainStations: DHMRainStation[];
   aqiStations: AirQualityStation[];
   incidents: BipadIncident[];
   onFocus?: (coords: [number, number]) => void;
+  onOpenHistory?: (target: HistoryTarget) => void;
   lang?: Language;
 }
 
@@ -47,6 +49,7 @@ export default function ObservedConditions({
   aqiStations,
   incidents,
   onFocus,
+  onOpenHistory,
   lang = "en",
 }: ObservedConditionsProps) {
   const [tab, setTab] = useState<Tab>("rain");
@@ -141,6 +144,14 @@ export default function ObservedConditions({
                           {fmtTime(s.measuredOn, lang)}
                         </span>
                       </button>
+                      {onOpenHistory && (
+                        <button
+                          onClick={() => onOpenHistory({ kind: "rain", id: s.id, name: s.name })}
+                          className="block text-[10px] font-semibold text-blue-600 dark:text-cyan-400 hover:underline"
+                        >
+                          {np ? "२४ घण्टा चार्ट →" : "24h chart →"}
+                        </button>
+                      )}
                     </td>
                     <td className="py-1.5 px-2 text-right text-slate-600 dark:text-slate-300">{s.rain1h ?? "—"}</td>
                     <td className="py-1.5 px-2 text-right text-slate-600 dark:text-slate-300 hidden sm:table-cell">{s.rain3h ?? "—"}</td>

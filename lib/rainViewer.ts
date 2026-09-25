@@ -6,7 +6,7 @@ import { RainViewerData, RadarFrame } from "./types";
 export async function getRainViewerData(): Promise<RainViewerData | null> {
   try {
     const res = await fetch("https://api.rainviewer.com/public/weather-maps.json", {
-      next: { revalidate: 600 },
+      cache: "no-store",
     });
     if (!res.ok) {
       throw new Error(`RainViewer API returned status ${res.status}`);

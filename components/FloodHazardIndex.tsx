@@ -15,6 +15,8 @@ import { HIGHWAY_ADVISORIES } from "@/data/emergencyHotlines";
 import { DHMRiverStation } from "@/app/api/dhm/route";
 import { NDRRMAAlert, DHMRainStation } from "@/lib/types";
 import { basinRainNear, BASIN_RAIN_RADIUS_KM } from "@/lib/observedRain";
+import { HistoryTarget } from "@/components/StationHistoryModal";
+import { RoadStatus } from "@/app/api/roads/route";
 import { Language, TRANSLATIONS } from "@/lib/translations";
 
 const RISING_WATCH_MARGIN_M = 1.0;
@@ -24,6 +26,8 @@ interface FloodHazardIndexProps {
   ndrrmaAlerts?: NDRRMAAlert[];
   rainStations?: DHMRainStation[];
   onSelectAlertFocus?: (coords: [number, number]) => void;
+  onOpenHistory?: (target: HistoryTarget) => void;
+  roads?: RoadStatus[];
   lang?: Language;
 }
 
@@ -32,8 +36,11 @@ export default function FloodHazardIndex({
   ndrrmaAlerts = [],
   rainStations = [],
   onSelectAlertFocus,
+  onOpenHistory,
+  roads = [],
   lang = "en",
 }: FloodHazardIndexProps) {
+  const [showPartialRoads, setShowPartialRoads] = useState(false);
   const [activeTab, setActiveTab] = useState<"dhm_gauges" | "ndrrma_alerts" | "rivers" | "highways">("dhm_gauges");
   const [gaugeSearch, setGaugeSearch] = useState("");
   const [gaugeFilter, setGaugeFilter] = useState<"all" | "elevated" | "rising">("all");
@@ -185,7 +192,10 @@ export default function FloodHazardIndex({
             }`}
           >
             <Car className="w-3.5 h-3.5" />
-            <span>{t.tabHighways}</span>
+            <span>
+              {t.tabHighways}
+              {roads.length > 0 ? ` (${roads.filter((r) => r.status === "CLOSED").length} ${lang === "np" ? "बन्द" : "closed"})` : ""}
+            </span>
           </button>
         </div>
       </div>
@@ -399,7 +409,20 @@ export default function FloodHazardIndex({
 
                   <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
                     <span>{t.sensorSource}</span>
-                    <span className="text-blue-600 dark:text-cyan-400 font-semibold">{t.liveHydrologyFeed}</span>
+                    <button
+                      onClick={() =>
+                        onOpenHistory?.({
+                          kind: "river",
+                          id: station.id,
+                          name: station.name,
+                          warningLevelM: station.warningLevelM,
+                          dangerLevelM: station.dangerLevelM,
+                        })
+                      }
+                      className="text-blue-600 dark:text-cyan-400 font-semibold hover:underline"
+                    >
+                      {lang === "np" ? "२४ घण्टा चार्ट →" : "24h chart →"}
+                    </button>
                   </div>
                 </div>
               );
@@ -621,11 +644,141 @@ export default function FloodHazardIndex({
         </div>
       )}
 
-      {/* Tab: Highways — live NDRRMA road alerts + static reference corridors */}
+      {/* Tab: Highways — live DoR road status, NDRRMA road alerts, static reference corridors */}
       {activeTab === "highways" && (
         <div className="mt-3.5 space-y-3">
+          {(() => {
+            const np = lang === "np";
+            const fmt = (iso?: string) =>
+              iso
+                ? new Date(iso).toLocaleString(np ? "ne-NP" : "en-US", {
+                    timeZone: "Asia/Kathmandu",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "—";
+            const closed = roads.filter((r) => r.status === "CLOSED");
+            const partial = roads.filter((r) => r.status === "PARTIAL_OPEN");
+            const reopened = roads.filter((r) => r.status === "OPEN");
+            const card = (r: RoadStatus) => (
+              <div
+                key={r.id}
+                className={`p-3 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border ${
+                  r.status === "CLOSED"
+                    ? "border-red-300 dark:border-[#C51D34]/60"
+                    : r.status === "PARTIAL_OPEN"
+                    ? "border-amber-300 dark:border-amber-500/40"
+                    : "border-emerald-300 dark:border-emerald-500/40"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                    {r.road}
+                    {r.roadRef ? <span className="font-normal text-slate-500"> · {r.roadRef}</span> : null}
+                  </h4>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase flex-shrink-0 ${
+                      r.status === "CLOSED"
+                        ? "bg-[#C51D34] text-white"
+                        : r.status === "PARTIAL_OPEN"
+                        ? "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300"
+                        : "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300"
+                    }`}
+                  >
+                    {r.status === "CLOSED"
+                      ? np ? "बन्द" : "Closed"
+                      : r.status === "PARTIAL_OPEN"
+                      ? np ? "आंशिक खुला" : "Partly open"
+                      : np ? "खुला" : "Reopened"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                  {r.location}
+                  {r.reason ? ` · ${r.reason}` : ""}
+                </p>
+                <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 space-y-0.5">
+                  {r.blockedSince && (
+                    <div>
+                      {np ? "अवरोध सुरु" : "Blocked since"}: {fmt(r.blockedSince)}
+                    </div>
+                  )}
+                  {r.status !== "OPEN" && (r.expectedReopen || r.repairEta) && (
+                    <div>
+                      {np ? "अनुमानित खुल्ने" : "Expected to reopen"}: {r.expectedReopen ? fmt(r.expectedReopen) : ""}
+                      {r.repairEta ? ` (${np ? "मर्मत समय" : "repair time"} ${r.repairEta})` : ""}
+                    </div>
+                  )}
+                  {r.reopenedAt && (
+                    <div>
+                      {r.status === "OPEN" ? (np ? "खुलेको" : "Reopened") : np ? "DoR अनुसार खुलेको समय" : "DoR reports reopening at"}: {fmt(r.reopenedAt)}
+                    </div>
+                  )}
+                </div>
+                {r.coordinates && onSelectAlertFocus && (
+                  <button
+                    onClick={() => onSelectAlertFocus(r.coordinates as [number, number])}
+                    className="mt-1 text-[10px] font-semibold text-blue-600 dark:text-cyan-400 hover:underline"
+                  >
+                    {np ? "नक्सामा हेर्नुहोस्" : "Show on map"}
+                  </button>
+                )}
+              </div>
+            );
+            return (
+              <>
+                <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {np ? "सडक स्थिति (सडक विभाग)" : "Road status (Department of Roads)"} —{" "}
+                  <span className="text-red-600 dark:text-red-400">
+                    {closed.length} {np ? "बन्द" : "closed"}
+                  </span>{" "}
+                  ·{" "}
+                  <span className="text-amber-600 dark:text-amber-400">
+                    {partial.length} {np ? "आंशिक खुला" : "partly open"}
+                  </span>{" "}
+                  · {reopened.length} {np ? "पछिल्लो २४ घण्टामा खुलेको" : "reopened in last 24h"}
+                </h5>
+                {roads.length === 0 ? (
+                  <div className="p-4 text-center rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs">
+                    {np ? "सडक विभागको फिड उपलब्ध छैन।" : "Department of Roads feed unavailable."}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {closed.map(card)}
+                      {reopened.map(card)}
+                    </div>
+                    {partial.length > 0 && (
+                      <div>
+                        <button
+                          onClick={() => setShowPartialRoads((v) => !v)}
+                          className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline"
+                        >
+                          {showPartialRoads
+                            ? np ? "आंशिक खुला सडक लुकाउनुहोस्" : "Hide partly open roads"
+                            : np
+                            ? `${partial.length} आंशिक खुला सडक हेर्नुहोस्`
+                            : `Show ${partial.length} partly open roads (one-lane / restricted)`}
+                        </button>
+                        {showPartialRoads && (
+                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">{partial.map(card)}</div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  {np
+                    ? "स्रोत: सडक विभाग, bipadportal.gov.np मार्फत। सम्पर्क व्यक्तिको नाम तथा फोन नम्बर जानाजानी देखाइएको छैन।"
+                    : "Source: Department of Roads via bipadportal.gov.np. Contact names and phone numbers are intentionally not shown."}
+                </p>
+              </>
+            );
+          })()}
+
           <h5 className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            {lang === "np" ? "सक्रिय सडक अवरोध सूचना (NDRRMA / सडक विभाग)" : "Active road alerts (NDRRMA / Department of Roads)"}
+            {lang === "np" ? "NDRRMA सडक पूर्वसूचना" : "NDRRMA road alerts"}
           </h5>
           {roadAlerts.length === 0 ? (
             <div className="p-4 text-center rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs">

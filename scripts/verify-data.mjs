@@ -155,6 +155,76 @@ await check("dhm forecast", async () => {
   notes.push(`dhm forecast: issued ${app.issuedAt}`);
 });
 
+await check("roads", async () => {
+  const [app, raw, rawText] = await Promise.all([
+    getJson(`${BASE_URL}/api/roads`),
+    getJson(`${BIPAD}/highway/?limit=300&ordering=-created_on`),
+    fetch(`${BASE_URL}/api/roads`).then((r) => r.text()),
+  ]);
+  if (!app.success) return fail("roads", "feed returned success=false");
+  // Privacy: contact names / phone numbers must never be passed through
+  if (/contact|remarks|effortsBeingMade/i.test(rawText)) fail("roads", "response contains contact/remarks fields");
+  if (/(?:\+?977[- ]?)?9[678]\d{8}/.test(rawText)) fail("roads", "response contains a phone number");
+  const byId = new Map(raw.results.map((r) => [r.id, r]));
+  for (const r of app.roads) {
+    const src = byId.get(r.id);
+    if (!src) { fail("roads", `road ${r.id} not in BIPAD`); continue; }
+    if (src.status !== r.status) fail("roads", `road ${r.id}: status ${r.status} ≠ DoR ${src.status}`);
+    if ((src.closureReason || undefined) !== (r.reason || undefined) && src.closureReason?.trim() !== r.reason) fail("roads", `road ${r.id}: reason differs`);
+  }
+  notes.push(`roads: ${app.roads.length} checked (${app.closed} closed, ${app.partial} partly open)`);
+});
+
+await check("dhm cities", async () => {
+  const [app, fc, obs] = await Promise.all([
+    getJson(`${BASE_URL}/api/dhm-cities`),
+    getJson("https://dhm.gov.np/mfd/api/weather"),
+    getJson("https://dhm.gov.np/mfd/api/manual-observation"),
+  ]);
+  if (!app.success || !app.cities?.length) return fail("dhm cities", "no cities returned");
+  const fcById = new Map(fc.stations.map((s) => [s.id, s]));
+  const obsById = new Map(obs.stations.map((s) => [s.id, s]));
+  let compared = 0;
+  for (const c of app.cities) {
+    const f = fcById.get(c.id);
+    if (f && app.forecastIssuedAt === fc.datetime) {
+      compared++;
+      for (const p of c.forecast) {
+        const day = { today: 1, tonight: 2, tomorrow: 3 }[p.period];
+        const src = f.manual_forecast.find((x) => x.day === day);
+        if (!src) { fail("dhm cities", `${c.name}: period ${p.period} not in DHM feed`); continue; }
+        if (src.from_temperature !== p.tempFrom || src.to_temperature !== p.tempTo || src.rain_probability !== p.rainChance)
+          fail("dhm cities", `${c.name} ${p.period}: forecast values differ from DHM`);
+      }
+    }
+    const o = obsById.get(c.id);
+    if (o && c.observed && app.observedIssuedAt === obs.issue_date) {
+      if (o.max_temperature !== c.observed.maxTemp || o.min_temperature !== c.observed.minTemp)
+        fail("dhm cities", `${c.name}: observed temperature differs from DHM`);
+      const rain = o.rainfall === 0.01 ? 0 : o.rainfall;
+      if (rain !== c.observed.rainfallMm) fail("dhm cities", `${c.name}: observed rainfall differs from DHM`);
+    }
+  }
+  notes.push(`dhm cities: ${app.cities.length} checked, ${compared} forecasts compared`);
+});
+
+await check("station history", async () => {
+  // Spot-check one live river gauge's history against BIPAD
+  const rivers = await getJson(`${BASE_URL}/api/dhm`);
+  const st = rivers.rivers?.[0];
+  if (!st) return fail("station history", "no river station to sample");
+  const app = await getJson(`${BASE_URL}/api/station-history?kind=river&id=${st.id}`);
+  if (!app.success) return fail("station history", "history returned success=false");
+  const since = new Date(Date.now() - 24 * HOUR).toISOString();
+  const raw = await getJson(`${BIPAD}/river/?limit=1000&station=${st.id}&water_level_on__gt=${since}&ordering=water_level_on`);
+  const rawByTime = new Map(raw.results.filter((r) => typeof r.waterLevel === "number").map((r) => [r.waterLevelOn, r.waterLevel]));
+  for (const p of app.points) {
+    if (!rawByTime.has(p.t)) continue; // outside the raw window after our cache
+    if (Number(rawByTime.get(p.t).toFixed(3)) !== p.v) fail("station history", `${st.name} ${p.t}: ${p.v} ≠ ${rawByTime.get(p.t)}`);
+  }
+  notes.push(`station history: ${st.name}, ${app.points.length} points checked`);
+});
+
 console.log(`Data check against ${BASE_URL}`);
 notes.forEach((n) => console.log("  ✓ " + n));
 if (failures.length) {

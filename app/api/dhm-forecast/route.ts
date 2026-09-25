@@ -9,7 +9,7 @@ const clean = (v: unknown): string =>
 export async function GET() {
   try {
     const res = await fetch(DHM_FORECAST_URL, {
-      next: { revalidate: 1800 },
+      cache: "no-store",
       headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (NepalWeatherTracker)" },
     });
     if (!res.ok) throw new Error(`DHM forecast returned HTTP ${res.status}`);
@@ -35,7 +35,7 @@ export async function GET() {
         analysis: { en: clean(d.analysis_en), np: clean(d.analysis_np) },
         special: clean(d.special),
       },
-      { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600" } }
+      { headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=300" } }
     );
   } catch (error) {
     console.error("DHM official forecast unavailable", error);

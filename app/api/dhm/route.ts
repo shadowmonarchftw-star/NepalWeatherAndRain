@@ -58,7 +58,7 @@ function mapDhmStatus(raw: string | undefined): "Normal" | "Warning" | "Danger" 
 export async function GET() {
   try {
     const bipadRes = await fetch("https://bipadportal.gov.np/api/v1/river-stations/?limit=1000", {
-      next: { revalidate: 300 }, // 5-minute edge cache
+      cache: "no-store",
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
@@ -132,7 +132,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300",
         },
       }
     );
