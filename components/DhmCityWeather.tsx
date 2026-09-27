@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { MapPin } from "lucide-react";
+import React, { useState } from "react";
+import { MapPin, ChevronDown } from "lucide-react";
 import { DhmCityWeather as City } from "@/app/api/dhm-cities/route";
 import { Language } from "@/lib/translations";
 import SourceTag from "@/components/SourceTag";
@@ -20,6 +20,14 @@ const PERIOD = {
   tomorrow: { en: "Tomorrow", np: "भोलि" },
 };
 
+
+const DEFAULT_VISIBLE = 3;
+// Shown first (and so in the default 3); every other city keeps DHM's order
+const FIRST_CITIES = ["Kathmandu", "Pokhara", "Biratnagar"];
+const rank = (c: City) => {
+  const i = FIRST_CITIES.indexOf(c.name);
+  return i === -1 ? FIRST_CITIES.length : i;
+};
 
 type Period = City["forecast"][number];
 
@@ -41,6 +49,9 @@ const observedRain = (c: City, np: boolean) =>
 export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssuedAt, onFocus, lang = "en" }: Props) {
   const np = lang === "np";
   const periods = cities.find((c) => c.forecast.length > 0)?.forecast.map((p) => p.period) || [];
+  const [showAll, setShowAll] = useState(false);
+  const ordered = [...cities].sort((a, b) => rank(a) - rank(b));
+  const visible = showAll ? ordered : ordered.slice(0, DEFAULT_VISIBLE);
 
   return (
     <div className="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-3.5 sm:p-5 shadow-sm text-slate-900 dark:text-white transition-colors">
@@ -69,7 +80,7 @@ export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssue
         <>
         {/* Phones: one card per city, so nothing is hidden off-screen */}
         <div className="mt-3 sm:hidden space-y-2">
-          {cities.map((c) => (
+          {visible.map((c) => (
             <div key={c.id} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
               <button onClick={() => onFocus?.(c.coordinates)} className="font-semibold hover:underline flex items-center gap-1 text-left">
                 <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
@@ -111,7 +122,7 @@ export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssue
               </tr>
             </thead>
             <tbody>
-              {cities.map((c) => (
+              {visible.map((c) => (
                 <tr key={c.id} className="border-t border-slate-200 dark:border-slate-800 align-top">
                   <td className="py-1.5 px-2.5">
                     <button onClick={() => onFocus?.(c.coordinates)} className="font-semibold hover:underline flex items-center gap-1 text-left">
@@ -138,6 +149,17 @@ export default function DhmCityWeather({ cities, forecastIssuedAt, observedIssue
             </tbody>
           </table>
         </div>
+        {cities.length > DEFAULT_VISIBLE && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="mt-2.5 mx-auto flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-[#0A0F1A] border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 touch-manipulation"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAll ? "rotate-180" : ""}`} />
+            {showAll
+              ? np ? "कम देखाउनुहोस्" : "Show less"
+              : np ? `सबै ${cities.length} सहर देखाउनुहोस्` : `Show all ${cities.length} cities`}
+          </button>
+        )}
         </>
       )}
       <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">

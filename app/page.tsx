@@ -300,8 +300,7 @@ export default function Home() {
         onOpenEmergency={() => setIsEmergencyOpen(true)}
         onRefreshData={refreshWeatherData}
         isRefreshing={isRefreshing}
-        latestAlert={ndrrmaAlerts[0]}
-        activeAlertCount={ndrrmaAlerts.length}
+        alerts={ndrrmaAlerts}
       />
 
       {/* Main Content Dashboard */}
